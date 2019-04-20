@@ -1,11 +1,13 @@
 import React from "react";
+import Vis from "./Vis";
+import {Container} from 'reactstrap';
 
 class Root extends React.Component {
   render() {
     return (
-      <div>
-        Root
-      </div>
+      <Container>
+        <Vis/>
+      </Container>
     )
     ;
   }
