@@ -9,8 +9,7 @@ class Vis extends React.Component {
   }
 
   componentDidMount() {
-    // this.drawChart();
-    this.drawTree();
+    this.drawChart();
     document.addEventListener("keydown", this.keypress);
   }
 
