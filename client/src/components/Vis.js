@@ -4,24 +4,40 @@ import io from "socket.io-client";
 
 class Vis extends React.Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.socket = io("http://localhost:3000");
   }
 
   componentDidMount() {
     this.drawChart();
     document.addEventListener("keydown", this.keypress);
+
+    this.socket.on("highlight", i => {
+      console.log("highlighting " + i);
+      d3.select("#b-" + i)
+        .attr("fill", "red")
+        .attr("width", this.dx)
+        .attr("x", this.dx * i - this.dx / 4);
+    });
+
+    this.socket.on("unhighlight", i => {
+      console.log("unhighlighting " + i);
+      d3.select("#b-" + i)
+        .attr("fill", "green")
+        .attr("width", this.dx / 2)
+        .attr("x", this.dx * i);
+    });
   }
 
   keypress = () => {
-    this.socket.emit("keypress")
-  }
+    this.socket.emit("keypress");
+  };
 
   onMouseOver = (d, i) => {
     d3.select("#b-" + i)
       .attr("fill", "orange")
       .attr("width", this.dx)
-      .attr("x", this.dx*i - this.dx/4);
+      .attr("x", this.dx * i - this.dx / 4);
 
     // Specify where to put label of text
     d3.select("svg")
@@ -31,19 +47,24 @@ class Vis extends React.Component {
       .attr("y", this.y(+d["1800"]) - 10)
       .attr("text-anchor", "middle")
       .text(d.country + ": " + d["1800"]);
+
+    this.socket.emit("highlightServer", i);
   };
 
   onMouseOut = (d, i) => {
     d3.select("#b-" + i)
       .attr("fill", "green")
       .attr("width", this.dx / 2)
-      .attr("x", this.dx*i);
+      .attr("x", this.dx * i);
 
     d3.select("#t-" + i).remove(); // Remove text location
+
+    this.socket.emit("unhighlightServer", i);
   };
 
   drawChart() {
     d3.csv("/data/income.csv").then(data => {
+      this.data = data;
       const w = this.divElement.clientWidth;
       const h = document.documentElement.clientHeight;
 

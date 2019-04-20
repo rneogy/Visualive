@@ -22,6 +22,13 @@ io.on("connection", (socket) => {
   socket.on("keypress", () => {
     console.log("key has been pressed");
   })
+
+  socket.on("highlightServer", (i) => {
+    socket.broadcast.emit("highlight", i);
+  });
+  socket.on("unhighlightServer", (i) => {
+    socket.broadcast.emit("unhighlight", i);
+  })
 });
 
 
