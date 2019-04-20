@@ -18,19 +18,41 @@ class Vis extends React.Component {
     this.socket.emit("keypress")
   }
 
+  onMouseOver = (d, i) => {
+    d3.select("#b-" + i).attr("fill", "orange");
+
+    // Specify where to put label of text
+    d3.select("svg")
+      .append("text")
+      .attr("id", "t-" + i)
+      .attr("x", this.dx*i)
+      .attr("y", this.y(+d["1800"]) - 10)
+      .attr("text-anchor", "middle")
+      .text(d.country + ": " + d["1800"])
+  }
+
+  onMouseOut(d, i) {
+    d3.select(this).attr("fill", "green");
+
+    d3.select("#t-" + i).remove(); // Remove text location
+  }
+
   drawChart() {
     d3.csv("/data/income.csv").then(data => {
       const w = this.divElement.clientWidth;
       const h = document.documentElement.clientHeight;
-      console.log(data.columns);
 
       const maxIncome = d3.max(data, d => parseInt(d["1800"]));
 
-      const y = d3
+      this.y = d3
         .scaleLinear()
         .domain([0, maxIncome])
-        .range([0, h])
+        .range([h, 0])
         .nice();
+
+      const countries = data.map(d => d.country);
+
+      this.dx = w / countries.length;
 
       const svg = d3
         .select("#vis")
@@ -44,14 +66,17 @@ class Vis extends React.Component {
         .enter()
         .append("rect")
         .attr("x", (d, i) => {
-          return i * 20;
+          return i * this.dx;
         })
         .attr("y", d => {
-          return h-y(parseInt(d["1800"]));
+          return this.y(parseInt(d["1800"]));
         })
-        .attr("width", 10)
-        .attr("height", (d) => y(parseInt(d["1800"])))
-        .attr("fill", "green");
+        .attr("width", this.dx / 2)
+        .attr("height", d => h-this.y(parseInt(d["1800"])))
+        .attr("fill", "green")
+        .attr("id", (_,i) => "b-" + i)
+        .on("mouseover", this.onMouseOver)
+        .on("mouseout", this.onMouseOut);
     });
   }
 
