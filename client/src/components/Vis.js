@@ -1,9 +1,21 @@
 import React from "react";
 import * as d3 from "d3";
+import io from "socket.io-client";
 
 class Vis extends React.Component {
+  constructor(props) {
+    super(props)
+    this.socket = io("http://localhost:3000");
+  }
+
   componentDidMount() {
-    this.drawChart();
+    // this.drawChart();
+    this.drawTree();
+    document.addEventListener("keydown", this.keypress);
+  }
+
+  keypress = () => {
+    this.socket.emit("keypress")
   }
 
   drawChart() {
