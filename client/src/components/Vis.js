@@ -7,32 +7,44 @@ class Vis extends React.Component {
   }
 
   drawChart() {
-    d3.csv("/data/income.csv").then(d => {
+    d3.csv("/data/income.csv").then(data => {
       const w = this.divElement.clientWidth;
       const h = document.documentElement.clientHeight;
-      console.log(d.columns);
+      console.log(data.columns);
+
+      const maxIncome = d3.max(data, d => parseInt(d["1800"]));
+
+      const y = d3
+        .scaleLinear()
+        .domain([0, maxIncome])
+        .range([0, h])
+        .nice();
 
       const svg = d3
         .select("#vis")
         .append("svg")
         .attr("width", w)
-        .attr("height", h)
+        .attr("height", h);
 
       svg
         .selectAll("rect")
-        .data(d)
+        .data(data)
         .enter()
         .append("rect")
-        .attr("x", (d, i) => i * 20)
-        .attr("y", (d, i) => h - 10 * i)
-        .attr("width", 20)
-        .attr("height", (d, i) => i * 10)
+        .attr("x", (d, i) => {
+          return i * 20;
+        })
+        .attr("y", d => {
+          return h-y(parseInt(d["1800"]));
+        })
+        .attr("width", 10)
+        .attr("height", (d) => y(parseInt(d["1800"])))
         .attr("fill", "green");
     });
   }
 
   render() {
-    return <div id="vis" ref={ (divElement) => this.divElement = divElement}/>;
+    return <div id="vis" ref={divElement => (this.divElement = divElement)} />;
   }
 }
 
