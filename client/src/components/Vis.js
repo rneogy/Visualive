@@ -16,7 +16,7 @@ class Vis extends React.Component {
       .attr("x", this.dx*i)
       .attr("y", this.y(+d["1800"]) - 10)
       .attr("text-anchor", "middle")
-      .text(d.country)
+      .text(d.country + ": " + d["1800"])
   }
 
   onMouseOut(d, i) {
