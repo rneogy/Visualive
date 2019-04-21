@@ -10,14 +10,13 @@ class Vis extends React.Component {
 
   componentDidMount() {
     this.drawChart();
-    document.addEventListener("keydown", this.keypress);
 
     this.socket.on("highlight", i => {
       console.log("highlighting " + i);
       d3.select("#b-" + i)
         .attr("fill", "red")
-        .attr("width", this.dx)
-        .attr("x", this.dx * i - this.dx / 4);
+        .attr("width", this.dx);
+      // .attr("x", this.dx * i - this.dx / 4);
     });
 
     this.socket.on("unhighlight", i => {
@@ -29,24 +28,20 @@ class Vis extends React.Component {
     });
   }
 
-  keypress = () => {
-    this.socket.emit("keypress");
-  };
-
   onMouseOver = (d, i) => {
     d3.select("#b-" + i)
       .attr("fill", "orange")
-      .attr("width", this.dx)
-      .attr("x", this.dx * i - this.dx / 4);
+      .attr("width", this.dx);
+    // .attr("x", this.dx * i - this.dx / 4);
 
     // Specify where to put label of text
     d3.select("svg")
       .append("text")
       .attr("id", "t-" + i)
       .attr("x", this.dx * i)
-      .attr("y", this.y(+d["1800"]) - 10)
+      .attr("y", this.y(d.income) - 20)
       .attr("text-anchor", "middle")
-      .text(d.country + ": " + d["1800"]);
+      .text(d.year + ": " + d.income);
 
     this.socket.emit("highlightServer", i);
   };
@@ -54,8 +49,8 @@ class Vis extends React.Component {
   onMouseOut = (d, i) => {
     d3.select("#b-" + i)
       .attr("fill", "green")
-      .attr("width", this.dx / 2)
-      .attr("x", this.dx * i);
+      .attr("width", this.dx / 2);
+    // .attr("x", this.dx * i);
 
     d3.select("#t-" + i).remove(); // Remove text location
 
@@ -67,18 +62,28 @@ class Vis extends React.Component {
       this.data = data;
       const w = this.divElement.clientWidth;
       const h = document.documentElement.clientHeight;
+      const country = data[0];
+      const countryData = Object.keys(country).reduce((res, k) => {
+        if (k !== "country") {
+          res.push({ year: +k, income: +country[k] });
+        }
+        return res;
+      }, []);
 
-      const maxIncome = d3.max(data, d => parseInt(d["1800"]));
+      const maxIncome = d3.max(countryData, d => d.income);
+
+      this.x = d3
+        .scaleLinear()
+        .domain([1800, 2040])
+        .range([0, w]);
+
+      this.dx = w / (2040 - 1800);
 
       this.y = d3
         .scaleLinear()
         .domain([0, maxIncome])
         .range([h, 0])
         .nice();
-
-      const countries = data.map(d => d.country);
-
-      this.dx = w / countries.length;
 
       const svg = d3
         .select("#vis")
@@ -88,21 +93,29 @@ class Vis extends React.Component {
 
       svg
         .selectAll("rect")
-        .data(data)
+        .data(countryData)
         .enter()
         .append("rect")
-        .attr("x", (d, i) => {
-          return i * this.dx;
+        .attr("x", d => {
+          return this.x(d.year);
         })
         .attr("y", d => {
-          return this.y(parseInt(d["1800"]));
+          return this.y(d.income);
         })
         .attr("width", this.dx / 2)
-        .attr("height", d => h - this.y(parseInt(d["1800"])))
+        .attr("height", d => h - this.y(d.income))
         .attr("fill", "green")
         .attr("id", (_, i) => "b-" + i)
         .on("mouseover", this.onMouseOver)
         .on("mouseout", this.onMouseOut);
+
+      const zoom = d3.zoom().on("zoom", zoomed);
+
+      d3.select("#vis").call(zoom);
+
+      function zoomed() {
+        svg.attr("transform", d3.event.transform);
+      }
     });
   }
 

@@ -19,10 +19,6 @@ io.on("connection", (socket) => {
   numConnected += 1;
   console.log("a user connected they are user number " + numConnected);
 
-  socket.on("keypress", () => {
-    console.log("key has been pressed");
-  })
-
   socket.on("highlightServer", (i) => {
     socket.broadcast.emit("highlight", i);
   });
