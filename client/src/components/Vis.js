@@ -109,12 +109,15 @@ class Vis extends React.Component {
         .on("mouseover", this.onMouseOver)
         .on("mouseout", this.onMouseOut);
 
-      const zoom = d3.zoom().on("zoom", zoomed);
+      const zoom = d3.zoom()
+                      .scaleExtent([0.5, 20])
+                      .translateExtent([[-100, -50], [w + 100, h]])
+                      .on("zoom", zoomed);
 
-      d3.select("#vis").call(zoom);
+      d3.select("svg").call(zoom);
 
       function zoomed() {
-        svg.attr("transform", d3.event.transform);
+        d3.selectAll("rect").attr("transform", d3.event.transform);
       }
     });
   }
