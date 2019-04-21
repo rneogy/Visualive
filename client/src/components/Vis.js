@@ -6,6 +6,7 @@ class Vis extends React.Component {
   constructor(props) {
     super(props);
     this.socket = io("http://localhost:3000");
+    this.selectedCountry = "";
   }
 
   componentDidMount() {
@@ -60,6 +61,24 @@ class Vis extends React.Component {
   drawChart() {
     d3.csv("/data/income.csv").then(data => {
       this.data = data;
+      let countryNames = d3.map(data, d => d.country).keys()
+
+      function onChange() {
+        let countryValue = d3.select('select').property('value')
+        console.log(countryValue);
+      }
+
+      console.log(countryNames);
+      let dropdown = d3.select("#vis").append("select").attr("id", "country-dropdown");
+      dropdown
+        .selectAll("option")
+        .data(countryNames)
+        .enter()
+        .append("option")
+        .attr("value", d => d)
+        .text(d => d)
+        .on("change", onChange);
+
       const w = this.divElement.clientWidth;
       const h = document.documentElement.clientHeight;
       const country = data[0];
