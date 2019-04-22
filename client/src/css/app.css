@@ -9,7 +9,6 @@ body {
   margin: 0;
   height: 100%;
   background-color: #0c0c23;
-  color: "#c5d2e8";
 }
 
 #root {
@@ -47,16 +46,31 @@ body {
   stroke: #fff;
 }
 
-/* #country-dropdown {
-  position: fixed;
-  top: 5px;
-  left: 30px;
-} */
-
 #top-bar {
   position: fixed;
-  top: 0px;
+  top: 40vh;
+  left: 0;
   width: 100vw;
   padding-top: 5px;
   text-align: center;
+  transition: 1000ms;
+}
+
+.main-title {
+  margin-top:10px;
+  color: #c5d2e8;
+}
+
+#country-dropdown {
+  width: 30%;
+  margin: 30px auto;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 3;
+}
+
+.chart-line.selected {
+  stroke-width: 8;
 }
