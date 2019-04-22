@@ -41,3 +41,9 @@ body {
 .node {
   stroke: #fff;
 }
+
+#country-dropdown {
+  position: fixed;
+  top: 5px;
+  left: 30px;
+}
