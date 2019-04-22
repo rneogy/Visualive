@@ -1,37 +1,31 @@
 import React from "react";
 import * as d3 from "d3";
-import io from "socket.io-client";
 
 const barColor = "#c5d2e8";
 const highlightColor = "#69efed";
+const transitionDuration = 1000;
 
 class Vis extends React.Component {
   constructor(props) {
     super(props);
-    this.socket = io("http://localhost:3000");
-    this.state = {
-      selectedCountry: ""
-    };
+    this.socket = this.props.socket;
+    this.data = this.props.data;
+    this.colors = d3.schemePastel1;
   }
 
   componentDidMount() {
     this.loadChart();
 
     this.socket.on("highlight", i => {
-      d3.select("#b-" + i)
-        .attr("fill", "red")
-        .attr("width", this.dx);
+      d3.select("#line-" + i)
+        .attr("stroke", "white")
+        .classed("selected", true);
     });
 
     this.socket.on("unhighlight", i => {
-      d3.select("#b-" + i)
-        .attr("stroke", barColor)
-        .attr("width", this.dx / 2);
-    });
-
-    this.socket.on("changeCountry", c => {
-      this.dropdown.property("value", c);
-      this.renderChart();
+      d3.select("#line-" + i)
+        .attr("stroke", this.colors[i])
+        .classed("selected", false);
     });
 
     document.addEventListener("keydown", e => {
@@ -45,11 +39,11 @@ class Vis extends React.Component {
     });
   }
 
-  onMouseOver = (d, i) => {
+  onMouseOverBar = (d, i) => {
     d3.select("#b-" + i)
       .attr("fill", highlightColor)
       .attr("stroke", highlightColor)
-      .attr("stroke-width", this.dx/2);
+      .attr("stroke-width", this.dx / 2);
 
     // Specify where to put label of text
     d3.select("svg")
@@ -65,7 +59,7 @@ class Vis extends React.Component {
     this.socket.emit("highlightServer", i);
   };
 
-  onMouseOut = (d, i) => {
+  onMouseOutBar = (d, i) => {
     d3.select("#b-" + i)
       .attr("fill", barColor)
       .attr("stroke", "none");
@@ -75,170 +69,199 @@ class Vis extends React.Component {
     this.socket.emit("unhighlightServer", i);
   };
 
+  onMouseOverLine = (d, i) => {
+    d3.select("#line-"+i).classed("selected", true);
+    this.socket.emit("highlightServer", i);
+  }
+
+  onMouseOutLine = (d, i) => {
+    d3.select("#line-"+i).classed("selected", false);
+    this.socket.emit("unhighlightServer", i);
+  }
+
   loadChart() {
-    d3.csv("/data/income.csv").then(data => {
-      this.data = data;
-      const countryNames = d3.map(data, d => d.country).keys();
+    const w = this.divElement.clientWidth;
+    const h = document.documentElement.clientHeight;
+    this.dx = w / (2040 - 1800);
 
-      const w = this.divElement.clientWidth;
-      const h = document.documentElement.clientHeight;
-      this.dx = w / (2040 - 1800);
+    this.svg = d3
+      .select("#vis")
+      .append("svg")
+      .attr("width", w)
+      .attr("height", h);
 
-      this.svg = d3
-        .select("#vis")
-        .append("svg")
-        .attr("width", w)
-        .attr("height", h);
+    this.svg
+      .append("g")
+      .attr("id", "xAxis")
+      .attr("transform", `translate(0,${0.96 * h})`)
+      .style("color", barColor);
 
-      this.svg
-        .append("g")
-        .attr("id", "xAxis")
-        .attr("transform", `translate(0,${0.96 * h})`)
-        .style("color", barColor);
+    this.svg
+      .append("g")
+      .attr("id", "yAxis")
+      .attr("transform", `translate(${0.04 * w}, 0)`)
+      .style("color", barColor);
 
-      this.svg
-        .append("g")
-        .attr("id", "yAxis")
-        .attr("transform", `translate(${0.04 * w}, 0)`)
-        .style("color", barColor);
+    this.x = d3
+      .scaleLinear()
+      .domain([1800, 2040])
+      .range([0.05 * w, 0.95 * w]);
 
-      this.x = d3
-        .scaleLinear()
-        .domain([1800, 2040])
-        .range([0.05 * w, 0.95 * w]);
+    this.xAxis = d3
+      .axisBottom()
+      .scale(this.x)
+      .tickFormat(d3.format("d"));
 
-      this.xAxis = d3
-        .axisBottom()
-        .scale(this.x)
-        .tickFormat(d3.format("d"));
+    this.y = d3.scaleLinear().range([0.95 * h, 0.05 * h]);
 
-      this.y = d3.scaleLinear().range([0.95 * h, 0.05 * h]);
+    this.yAxis = d3.axisLeft();
 
-      this.yAxis = d3.axisLeft();
+    this.zoom = d3
+      .zoom()
+      .scaleExtent([0.8, 20])
+      .translateExtent([[-100, 0], [w + 100, 0]])
+      .on("zoom", this.zoomed);
 
-      this.zoom = d3
-        .zoom()
-        .scaleExtent([0.8, 20])
-        .translateExtent([[-100, 0], [w + 100, 0]])
-        .on("zoom", this.zoomed);
+    this.svg.call(this.zoom);
 
-      this.svg.call(this.zoom);
+    // Clipping
+    this.svg
+      .append("defs")
+      .append("clipPath")
+      .attr("id", "clip")
+      .append("rect")
+      .attr("x", 0.05 * w)
+      .attr("y", 0.05 * h)
+      .attr("width", 0.9 * w)
+      .attr("height", 0.9 * h);
 
-      // Clipping
-      this.svg
-        .append("defs")
-        .append("clipPath")
-        .attr("id", "clip")
-        .append("rect")
-        .attr("x", 0.05 * w)
-        .attr("y", 0.05 * h)
-        .attr("width", 0.9 * w)
-        .attr("height", 0.9 * h);
+    const main = this.svg
+      .append("g")
+      .attr("class", "main")
+      .attr("clip-path", "url(#clip)");
 
-      const main = this.svg
-        .append("g")
-        .attr("class", "main")
-        .attr("clip-path", "url(#clip)");
+    const line = d3
+      .line()
+      .x(d => this.x(d.year))
+      .y(d => this.y(d.income));
+    
 
-      this.renderChart = () => {
-        this.setState({ selectedCountry: this.dropdown.property("value") });
-        console.log("rendering " + this.state.selectedCountry);
-        const rawCountryData = data.find(
-          d => d.country === this.state.selectedCountry
-        );
-        const countryData = Object.keys(rawCountryData).reduce((res, k) => {
+    this.renderChart = () => {
+      console.log("rendering " + this.props.selected);
+      const rawCountryData = [];
+      for (const country of this.data) {
+        if (this.props.selected.includes(country.country)) {
+          rawCountryData[this.props.selected.indexOf(country.country)] = country;
+        }
+      }
+      if (!rawCountryData) {
+        return;
+      }
+      const countryData = rawCountryData.map(c =>
+        Object.keys(c).reduce((res, k) => {
           if (k !== "country") {
-            res.push({ year: +k, income: +rawCountryData[k] });
+            res.push({ year: +k, income: +c[k] });
           }
           return res;
-        }, []);
+        }, [])
+      );
 
-        const maxIncome = d3.max(countryData, d => d.income);
+      const maxIncome = d3.max(countryData, c => d3.max(c, d => d.income));
 
-        this.t = this.x;
-        this.xAxis.scale(this.t);
+      this.t = this.x;
+      this.xAxis.scale(this.t);
 
-        this.y.domain([0, maxIncome]).nice();
+      this.y.domain([0, maxIncome]).nice();
 
-        this.yAxis.scale(this.y);
+      this.yAxis.scale(this.y);
 
-        d3.select("#xAxis")
-          .transition()
-          .duration(2000)
-          .call(this.xAxis);
+      d3.select("#xAxis")
+        .transition()
+        .duration(transitionDuration)
+        .call(this.xAxis);
 
-        d3.select("#yAxis")
-          .transition()
-          .duration(2000)
-          .call(this.yAxis);
+      d3.select("#yAxis")
+        .transition()
+        .duration(transitionDuration)
+        .call(this.yAxis);
 
-        const bars = main.selectAll("rect.bar").data(countryData);
+      const paths = main.selectAll("path.chart-line").data(countryData);
 
-        bars
-          .enter()
-          .append("rect")
-          .classed("bar", true)
-          .attr("x", d => {
-            return this.x(d.year);
-          })
-          .attr("y", d => {
-            return this.y(d.income) - h / 2;
-          })
-          .attr("width", this.dx / 2)
-          .attr("height", d => 0.95 * h - this.y(d.income))
-          .attr("fill", barColor)
-          .attr("id", (_, i) => "b-" + i)
-          .attr("opacity", 0)
-          .on("mouseover", this.onMouseOver)
-          .on("mouseout", this.onMouseOut)
-          .transition()
-          .delay((_, i) => i * 3)
-          .duration(1000)
-          .attr("opacity", 1)
-          .attr("y", d => {
-            return this.y(d.income);
-          });
-
-        bars
-          .transition()
-          .delay((_, i) => i * 3)
-          .duration(1000)
-          .attr("x", d => {
-            return this.x(d.year);
-          })
-          .attr("y", d => {
-            return this.y(d.income);
-          })
-          .attr("width", this.dx / 2)
-          .attr("height", d => 0.95 * h - this.y(d.income))
-          .attr("fill", barColor)
-          .attr("id", (_, i) => "b-" + i);
-      };
-
-      const changeCountry = () => {
-        this.socket.emit(
-          "changeCountryServer",
-          this.dropdown.property("value")
-        );
-        this.renderChart();
-      };
-
-      this.dropdown = d3
-        .select("#top-bar")
-        .append("select")
-        .attr("id", "country-dropdown")
-        .on("change", changeCountry);
-
-      this.dropdown
-        .selectAll("option")
-        .data(countryNames)
+      paths
         .enter()
-        .append("option")
-        .attr("value", d => d)
-        .text(d => d);
+        .append("path")
+        .attr("class", "chart-line")
+        .attr("id", (_,i) => "line-"+i)
+        .attr("d", line)
+        .attr("stroke", (_,i) => this.colors[i])
+        .attr("opacity", 0)
+        .on("mouseover", this.onMouseOverLine)
+        .on("mouseout", this.onMouseOutLine)
+        .transition()
+        .duration(transitionDuration)
+        .attr("opacity", 1);
+      
+      paths.transition()
+        .duration(transitionDuration)
+        .attr("d", line);
+      
+      paths.exit()
+        .transition()
+        .duration(500)
+        .attr("opacity", 0)
+        .remove();
 
-      this.renderChart();
-    });
+      // const path = this.svg.append("path").attr("class", "chart-line");
+
+      // path
+      //   .datum(countryData)
+      //   .attr("d", line)
+      //   .attr("stroke", barColor);
+
+      // const bars = main.selectAll("rect.bar").data(countryData);
+
+      // bars
+      //   .enter()
+      //   .append("rect")
+      //   .classed("bar", true)
+      //   .attr("x", d => {
+      //     return this.x(d.year);
+      //   })
+      //   .attr("y", d => {
+      //     return this.y(d.income) - h / 2;
+      //   })
+      //   .attr("width", this.dx / 2)
+      //   .attr("height", d => 0.95 * h - this.y(d.income))
+      //   .attr("fill", barColor)
+      //   .attr("id", (_, i) => "b-" + i)
+      //   .attr("opacity", 0)
+      //   .on("mouseover", this.onMouseOverBar)
+      //   .on("mouseout", this.onMouseOutBar)
+      //   .transition()
+      //   .delay((_, i) => i * 3)
+      //   .duration(1000)
+      //   .attr("opacity", 1)
+      //   .attr("y", d => {
+      //     return this.y(d.income);
+      //   });
+
+      // bars
+      //   .transition()
+      //   .delay((_, i) => i * 3)
+      //   .duration(1000)
+      //   .attr("x", d => {
+      //     return this.x(d.year);
+      //   })
+      //   .attr("y", d => {
+      //     return this.y(d.income);
+      //   })
+      //   .attr("width", this.dx / 2)
+      //   .attr("height", d => 0.95 * h - this.y(d.income))
+      //   .attr("fill", barColor)
+      //   .attr("id", (_, i) => "b-" + i);
+    };
+
+    setTimeout(this.renderChart, 100);
   }
 
   zoomed = () => {
@@ -247,6 +270,10 @@ class Vis extends React.Component {
       return this.t(d.year);
     });
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
+  };
+
+  componentDidUpdate = () => {
+    this.renderChart();
   };
 
   render() {
