@@ -2,6 +2,9 @@ import React from "react";
 import * as d3 from "d3";
 import io from "socket.io-client";
 
+const barColor = "#c5d2e8";
+const highlightColor = "#69efed";
+
 class Vis extends React.Component {
   constructor(props) {
     super(props);
@@ -22,7 +25,7 @@ class Vis extends React.Component {
 
     this.socket.on("unhighlight", i => {
       d3.select("#b-" + i)
-        .attr("fill", "green")
+        .attr("stroke", barColor)
         .attr("width", this.dx / 2);
     });
 
@@ -30,12 +33,23 @@ class Vis extends React.Component {
       this.dropdown.property("value", c);
       this.renderChart();
     });
+
+    document.addEventListener("keydown", e => {
+      if (e.keyCode === 27) {
+        // escape
+        this.svg
+          .transition()
+          .duration(1000)
+          .call(this.zoom.transform, d3.zoomIdentity.scale(1));
+      }
+    });
   }
 
   onMouseOver = (d, i) => {
     d3.select("#b-" + i)
-      .attr("fill", "orange")
-      .attr("width", this.dx);
+      .attr("fill", highlightColor)
+      .attr("stroke", highlightColor)
+      .attr("stroke-width", this.dx/2);
 
     // Specify where to put label of text
     d3.select("svg")
@@ -44,15 +58,17 @@ class Vis extends React.Component {
       .attr("x", this.t(d.year))
       .attr("y", this.y(d.income) - 20)
       .attr("text-anchor", "middle")
-      .text(d.year + ": " + d.income);
+      .attr("fill", "white")
+      .attr("font-size", "20px")
+      .text(d.year + ": $" + d.income);
 
     this.socket.emit("highlightServer", i);
   };
 
   onMouseOut = (d, i) => {
     d3.select("#b-" + i)
-      .attr("fill", "green")
-      .attr("width", this.dx / 2);
+      .attr("fill", barColor)
+      .attr("stroke", "none");
 
     d3.select("#t-" + i).remove(); // Remove text location
 
@@ -68,21 +84,23 @@ class Vis extends React.Component {
       const h = document.documentElement.clientHeight;
       this.dx = w / (2040 - 1800);
 
-      const svg = d3
+      this.svg = d3
         .select("#vis")
         .append("svg")
         .attr("width", w)
         .attr("height", h);
 
-      svg
+      this.svg
         .append("g")
         .attr("id", "xAxis")
-        .attr("transform", `translate(0,${0.96 * h})`);
+        .attr("transform", `translate(0,${0.96 * h})`)
+        .style("color", barColor);
 
-      svg
+      this.svg
         .append("g")
         .attr("id", "yAxis")
-        .attr("transform", `translate(${0.04 * w}, 0)`);
+        .attr("transform", `translate(${0.04 * w}, 0)`)
+        .style("color", barColor);
 
       this.x = d3
         .scaleLinear()
@@ -98,16 +116,16 @@ class Vis extends React.Component {
 
       this.yAxis = d3.axisLeft();
 
-      const zoom = d3
+      this.zoom = d3
         .zoom()
         .scaleExtent([0.8, 20])
         .translateExtent([[-100, 0], [w + 100, 0]])
         .on("zoom", this.zoomed);
 
-      svg.call(zoom);
+      this.svg.call(this.zoom);
 
       // Clipping
-      svg
+      this.svg
         .append("defs")
         .append("clipPath")
         .attr("id", "clip")
@@ -117,7 +135,7 @@ class Vis extends React.Component {
         .attr("width", 0.9 * w)
         .attr("height", 0.9 * h);
 
-      const main = svg
+      const main = this.svg
         .append("g")
         .attr("class", "main")
         .attr("clip-path", "url(#clip)");
@@ -168,7 +186,7 @@ class Vis extends React.Component {
           })
           .attr("width", this.dx / 2)
           .attr("height", d => 0.95 * h - this.y(d.income))
-          .attr("fill", "green")
+          .attr("fill", barColor)
           .attr("id", (_, i) => "b-" + i)
           .attr("opacity", 0)
           .on("mouseover", this.onMouseOver)
@@ -193,17 +211,20 @@ class Vis extends React.Component {
           })
           .attr("width", this.dx / 2)
           .attr("height", d => 0.95 * h - this.y(d.income))
-          .attr("fill", "green")
+          .attr("fill", barColor)
           .attr("id", (_, i) => "b-" + i);
       };
 
       const changeCountry = () => {
-        this.socket.emit("changeCountryServer", this.dropdown.property("value"))
+        this.socket.emit(
+          "changeCountryServer",
+          this.dropdown.property("value")
+        );
         this.renderChart();
-      }
+      };
 
       this.dropdown = d3
-        .select("body")
+        .select("#top-bar")
         .append("select")
         .attr("id", "country-dropdown")
         .on("change", changeCountry);
