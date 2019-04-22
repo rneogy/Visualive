@@ -12,7 +12,7 @@ class Vis extends React.Component {
   }
 
   componentDidMount() {
-    this.drawChart();
+    this.loadChart();
 
     this.socket.on("highlight", i => {
       d3.select("#b-" + i)
@@ -24,6 +24,11 @@ class Vis extends React.Component {
       d3.select("#b-" + i)
         .attr("fill", "green")
         .attr("width", this.dx / 2);
+    });
+
+    this.socket.on("changeCountry", c => {
+      this.dropdown.property("value", c);
+      this.renderChart();
     });
   }
 
@@ -54,7 +59,7 @@ class Vis extends React.Component {
     this.socket.emit("unhighlightServer", i);
   };
 
-  drawChart() {
+  loadChart() {
     d3.csv("/data/income.csv").then(data => {
       this.data = data;
       const countryNames = d3.map(data, d => d.country).keys();
@@ -117,7 +122,7 @@ class Vis extends React.Component {
         .attr("class", "main")
         .attr("clip-path", "url(#clip)");
 
-      const renderChart = () => {
+      this.renderChart = () => {
         this.setState({ selectedCountry: this.dropdown.property("value") });
         console.log("rendering " + this.state.selectedCountry);
         const rawCountryData = data.find(
@@ -159,7 +164,7 @@ class Vis extends React.Component {
             return this.x(d.year);
           })
           .attr("y", d => {
-            return this.y(d.income)-h/2;
+            return this.y(d.income) - h / 2;
           })
           .attr("width", this.dx / 2)
           .attr("height", d => 0.95 * h - this.y(d.income))
@@ -169,8 +174,8 @@ class Vis extends React.Component {
           .on("mouseover", this.onMouseOver)
           .on("mouseout", this.onMouseOut)
           .transition()
-          .delay((_,i) => i*3)
-          .duration(2000)
+          .delay((_, i) => i * 3)
+          .duration(1000)
           .attr("opacity", 1)
           .attr("y", d => {
             return this.y(d.income);
@@ -178,7 +183,8 @@ class Vis extends React.Component {
 
         bars
           .transition()
-          .duration(2000)
+          .delay((_, i) => i * 3)
+          .duration(1000)
           .attr("x", d => {
             return this.x(d.year);
           })
@@ -191,11 +197,16 @@ class Vis extends React.Component {
           .attr("id", (_, i) => "b-" + i);
       };
 
+      const changeCountry = () => {
+        this.socket.emit("changeCountryServer", this.dropdown.property("value"))
+        this.renderChart();
+      }
+
       this.dropdown = d3
-        .select("#vis")
+        .select("body")
         .append("select")
         .attr("id", "country-dropdown")
-        .on("change", renderChart);
+        .on("change", changeCountry);
 
       this.dropdown
         .selectAll("option")
@@ -205,7 +216,7 @@ class Vis extends React.Component {
         .attr("value", d => d)
         .text(d => d);
 
-      renderChart();
+      this.renderChart();
     });
   }
 

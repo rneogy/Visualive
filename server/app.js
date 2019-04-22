@@ -8,25 +8,24 @@ let numConnected = 0;
 
 const publicPath = path.resolve(__dirname, "..", "client", "dist");
 
-
 app.use(express.static(publicPath));
 
 http.listen(3000, () => {
   console.log(`Listening on port 3000 and looking in folder ${publicPath}`);
 });
 
-io.on("connection", (socket) => {
+io.on("connection", socket => {
   numConnected += 1;
   console.log("a user connected they are user number " + numConnected);
 
-  socket.on("highlightServer", (i) => {
+  socket.on("highlightServer", i => {
     socket.broadcast.emit("highlight", i);
   });
-  socket.on("unhighlightServer", (i) => {
+  socket.on("unhighlightServer", i => {
     socket.broadcast.emit("unhighlight", i);
-  })
+  });
+
+  socket.on("changeCountryServer", c => {
+    socket.broadcast.emit("changeCountry", c);
+  });
 });
-
-
-
-
