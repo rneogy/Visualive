@@ -28,6 +28,11 @@ class Vis extends React.Component {
         .classed("selected", false);
     });
 
+    this.socket.on("changeZoom", d => {
+      this.t.domain(d);
+      d3.selectAll(".chart-line").attr("d", this.line);
+    });
+
     document.addEventListener("keydown", e => {
       if (e.keyCode === 27) {
         // escape
@@ -128,7 +133,7 @@ class Vis extends React.Component {
 
     this.zoom = d3
       .zoom()
-      .scaleExtent([0.8, 20])
+      .scaleExtent([1, 20])
       .translateExtent([[-100, 0], [w + 100, 0]])
       .on("zoom", this.zoomed);
 
@@ -150,9 +155,9 @@ class Vis extends React.Component {
       .attr("class", "main")
       .attr("clip-path", "url(#clip)");
 
-    const line = d3
+    this.line = d3
       .line()
-      .x(d => this.x(d.year))
+      .x(d => this.t(d.year))
       .y(d => this.y(d.income));
 
     this.renderChart = () => {
@@ -203,7 +208,7 @@ class Vis extends React.Component {
         .append("path")
         .attr("class", "chart-line")
         .attr("id", (_, i) => "line-" + i)
-        .attr("d", line)
+        .attr("d", this.line)
         .attr("stroke", (_, i) => this.colors[i])
         .attr("opacity", 0)
         .on("mouseover", this.onMouseOverLine)
@@ -215,7 +220,7 @@ class Vis extends React.Component {
       paths
         .transition()
         .duration(transitionDuration)
-        .attr("d", line);
+        .attr("d", this.line);
 
       paths
         .exit()
@@ -223,13 +228,6 @@ class Vis extends React.Component {
         .duration(500)
         .attr("opacity", 0)
         .remove();
-
-      // const path = this.svg.append("path").attr("class", "chart-line");
-
-      // path
-      //   .datum(countryData)
-      //   .attr("d", line)
-      //   .attr("stroke", barColor);
 
       // const bars = main.selectAll("rect.bar").data(countryData);
 
@@ -279,10 +277,13 @@ class Vis extends React.Component {
 
   zoomed = () => {
     this.t = d3.event.transform.rescaleX(this.x);
-    d3.selectAll("rect.bar").attr("x", d => {
-      return this.t(d.year);
-    });
+    // d3.selectAll("rect.bar").attr("x", d => {
+    //   return this.t(d.year);
+    // });
+    d3.selectAll(".chart-line")
+      .attr("d", this.line)
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
+    this.socket.emit("changeZoomServer", this.t.domain());
   };
 
   componentDidUpdate = () => {

@@ -28,4 +28,8 @@ io.on("connection", socket => {
   socket.on("changeCountryServer", c => {
     socket.broadcast.emit("changeCountry", c);
   });
+
+  socket.on("changeZoomServer", d => {
+    socket.broadcast.emit("changeZoom", d);
+  })
 });
