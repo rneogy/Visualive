@@ -5,7 +5,7 @@ import io from "socket.io-client";
 class Vis extends React.Component {
   constructor(props) {
     super(props);
-    this.socket = io("http://visualiver.herokuapp.com:3000");
+    this.socket = io();
     this.state = {
       selectedCountry: ""
     };
