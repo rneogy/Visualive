@@ -70,14 +70,24 @@ class Vis extends React.Component {
   };
 
   onMouseOverLine = (d, i) => {
-    d3.select("#line-"+i).classed("selected", true);
+    d3.select("#line-" + i).classed("selected", true);
     this.socket.emit("highlightServer", i);
-  }
+
+    const e = d3.event;
+    const tt = document.createElement("div");
+    tt.classList.add("mytooltip");
+    tt.id = "tt-" + i;
+    tt.style.left = e.clientX + "px";
+    tt.style.top = e.clientY - 40 + "px";
+    tt.innerText = this.props.selected[i];
+    document.body.prepend(tt);
+  };
 
   onMouseOutLine = (d, i) => {
-    d3.select("#line-"+i).classed("selected", false);
+    d3.select("#line-" + i).classed("selected", false);
     this.socket.emit("unhighlightServer", i);
-  }
+    document.querySelector("#tt-"+i).remove();
+  };
 
   loadChart() {
     const w = this.divElement.clientWidth;
@@ -144,14 +154,15 @@ class Vis extends React.Component {
       .line()
       .x(d => this.x(d.year))
       .y(d => this.y(d.income));
-    
 
     this.renderChart = () => {
       console.log("rendering " + this.props.selected);
       const rawCountryData = [];
       for (const country of this.data) {
         if (this.props.selected.includes(country.country)) {
-          rawCountryData[this.props.selected.indexOf(country.country)] = country;
+          rawCountryData[
+            this.props.selected.indexOf(country.country)
+          ] = country;
         }
       }
       if (!rawCountryData) {
@@ -191,21 +202,23 @@ class Vis extends React.Component {
         .enter()
         .append("path")
         .attr("class", "chart-line")
-        .attr("id", (_,i) => "line-"+i)
+        .attr("id", (_, i) => "line-" + i)
         .attr("d", line)
-        .attr("stroke", (_,i) => this.colors[i])
+        .attr("stroke", (_, i) => this.colors[i])
         .attr("opacity", 0)
         .on("mouseover", this.onMouseOverLine)
         .on("mouseout", this.onMouseOutLine)
         .transition()
         .duration(transitionDuration)
         .attr("opacity", 1);
-      
-      paths.transition()
+
+      paths
+        .transition()
         .duration(transitionDuration)
         .attr("d", line);
-      
-      paths.exit()
+
+      paths
+        .exit()
         .transition()
         .duration(500)
         .attr("opacity", 0)

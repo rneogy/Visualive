@@ -74,3 +74,12 @@ body {
 .chart-line.selected {
   stroke-width: 8;
 }
+
+div.mytooltip {
+  position: fixed;
+  text-align: middle;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background-color: rgba(43, 43, 43, 0.726);
+  color: #c5d2e8;
+}
