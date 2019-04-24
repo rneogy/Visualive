@@ -12,7 +12,8 @@ class Root extends React.Component {
     this.socket = io("http://localhost:3000");
     this.state = {
       selectedCountries: [],
-      data: []
+      data: [],
+      bars: true
     };
     d3.csv("/data/income.csv").then(d => {
       this.setState({ data: d });
@@ -20,12 +21,26 @@ class Root extends React.Component {
 
     this.socket.on("changeCountry", c => {
       console.log(c);
-      this.setState({selectedCountries: c});
+      this.setState({ selectedCountries: c });
+    });
+
+    this.socket.on("changeChart", b => this.setState({bars: b}));
+
+    document.addEventListener("keydown", e => {
+      if (e.keyCode === 17) {
+        this.setState({ bars: !this.state.bars });
+        this.socket.emit("changeChartServer", this.state.bars);
+      }
     });
   }
 
   selectCountry = c => {
-    const countries = c.map(i => i.value);
+    let countries = c;
+    if (this.state.bars) {
+      countries = [c];
+    }
+    countries = countries.map(i => i.value);
+    console.log(countries);
     this.setState({
       selectedCountries: countries
     });
@@ -42,12 +57,21 @@ class Root extends React.Component {
             })}
             cb={this.selectCountry}
             selected={this.state.selectedCountries}
+            multi={!this.state.bars}
           />
-          <Bars
-            data={this.state.data}
-            selected={this.state.selectedCountries}
-            socket={this.socket}
-          />
+          {this.state.bars ? (
+            <Bars
+              data={this.state.data}
+              selected={this.state.selectedCountries}
+              socket={this.socket}
+            />
+          ) : (
+            <Vis
+              data={this.state.data}
+              selected={this.state.selectedCountries}
+              socket={this.socket}
+            />
+          )}
         </div>
       );
     } else {

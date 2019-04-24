@@ -17,20 +17,22 @@ class Vis extends React.Component {
     this.loadChart();
 
     this.socket.on("highlight", i => {
-      d3.select("#line-" + i)
-        .attr("stroke", "white")
+      d3.select("#b-" + i)
+        .attr("fill", "white")
         .classed("selected", true);
     });
 
     this.socket.on("unhighlight", i => {
-      d3.select("#line-" + i)
-        .attr("stroke", this.colors[i])
+      d3.select("#b-" + i)
+        .attr("fill", barColor)
         .classed("selected", false);
     });
 
     this.socket.on("changeZoom", d => {
       this.t.domain(d);
-      d3.selectAll(".chart-line").attr("d", this.line);
+      d3.selectAll("rect.bar").attr("x", d => {
+        return this.t(d.year);
+      });
     });
 
     document.addEventListener("keydown", e => {
@@ -38,7 +40,7 @@ class Vis extends React.Component {
         // escape
         this.svg
           .transition()
-          .duration(1000)
+          .duration(transitionDuration)
           .call(this.zoom.transform, d3.zoomIdentity.scale(1));
       }
     });
@@ -72,26 +74,6 @@ class Vis extends React.Component {
     d3.select("#t-" + i).remove(); // Remove text location
 
     this.socket.emit("unhighlightServer", i);
-  };
-
-  onMouseOverLine = (d, i) => {
-    d3.select("#line-" + i).classed("selected", true);
-    this.socket.emit("highlightServer", i);
-
-    const e = d3.event;
-    const tt = document.createElement("div");
-    tt.classList.add("mytooltip");
-    tt.id = "tt-" + i;
-    tt.style.left = e.clientX + "px";
-    tt.style.top = e.clientY - 40 + "px";
-    tt.innerText = this.props.selected[i];
-    document.body.prepend(tt);
-  };
-
-  onMouseOutLine = (d, i) => {
-    d3.select("#line-" + i).classed("selected", false);
-    this.socket.emit("unhighlightServer", i);
-    document.querySelector("#tt-"+i).remove();
   };
 
   loadChart() {
@@ -162,28 +144,21 @@ class Vis extends React.Component {
 
     this.renderChart = () => {
       console.log("rendering " + this.props.selected);
-      const rawCountryData = this.data;
-    //   for (const country of this.data) {
-    //     if (this.props.selected.includes(country.country)) {
-    //       rawCountryData[
-    //         this.props.selected.indexOf(country.country)
-    //       ] = country;
-    //     }
-    //   }
-    //   if (!rawCountryData) {
-    //     return;
-    //   }
-      const countryData = rawCountryData.map(c =>
-        Object.keys(c).reduce((res, k) => {
-          if (k !== "country") {
-            res.push({ year: +k, income: +c[k] });
-          }
-          return res;
-        }, [])
+      const rawCountryData = this.data.find(
+        c => c.country === this.props.selected[0]
       );
-      console.log(countryData)
+      if (!rawCountryData) {
+        return;
+      }
+      const countryData = Object.keys(rawCountryData).reduce((res, k) => {
+        if (k !== "country") {
+          res.push({ year: +k, income: +rawCountryData[k] });
+        }
+        return res;
+      }, []);
+      console.log(countryData);
 
-      const maxIncome = d3.max(countryData, c => d3.max(c, d => d.income));
+      const maxIncome = d3.max(countryData, c => c.income);
 
       this.t = this.x;
       this.xAxis.scale(this.t);
@@ -201,34 +176,6 @@ class Vis extends React.Component {
         .transition()
         .duration(transitionDuration)
         .call(this.yAxis);
-
-    //   const paths = main.selectAll("path.chart-line").data(countryData);
-
-    //   paths
-    //     .enter()
-    //     .append("path")
-    //     .attr("class", "chart-line")
-    //     .attr("id", (_, i) => "line-" + i)
-    //     .attr("d", this.line)
-    //     .attr("stroke", (_, i) => this.colors[i])
-    //     .attr("opacity", 0)
-    //     .on("mouseover", this.onMouseOverLine)
-    //     .on("mouseout", this.onMouseOutLine)
-    //     .transition()
-    //     .duration(transitionDuration)
-    //     .attr("opacity", 1);
-
-    //   paths
-    //     .transition()
-    //     .duration(transitionDuration)
-    //     .attr("d", this.line);
-
-    //   paths
-    //     .exit()
-    //     .transition()
-    //     .duration(500)
-    //     .attr("opacity", 0)
-    //     .remove();
 
       const bars = main.selectAll("rect.bar").data(countryData);
 
@@ -251,7 +198,7 @@ class Vis extends React.Component {
         .on("mouseout", this.onMouseOutBar)
         .transition()
         .delay((_, i) => i * 3)
-        .duration(1000)
+        .duration(transitionDuration)
         .attr("opacity", 1)
         .attr("y", d => {
           return this.y(d.income);
@@ -260,7 +207,7 @@ class Vis extends React.Component {
       bars
         .transition()
         .delay((_, i) => i * 3)
-        .duration(1000)
+        .duration(transitionDuration)
         .attr("x", d => {
           return this.x(d.year);
         })
@@ -278,11 +225,9 @@ class Vis extends React.Component {
 
   zoomed = () => {
     this.t = d3.event.transform.rescaleX(this.x);
-    // d3.selectAll("rect.bar").attr("x", d => {
-    //   return this.t(d.year);
-    // });
-    d3.selectAll(".chart-line")
-      .attr("d", this.line)
+    d3.selectAll("rect.bar").attr("x", d => {
+      return this.t(d.year);
+    });
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
     this.socket.emit("changeZoomServer", this.t.domain());
   };
