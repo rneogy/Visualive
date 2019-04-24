@@ -33,7 +33,7 @@ class TopBar extends React.Component {
         <Select
           onChange={this.callback}
           options={this.props.items}
-          isMulti
+          isMulti={this.props.multi}
           id="country-dropdown"
           autoFocus
           value={this.props.selected.map(c => {

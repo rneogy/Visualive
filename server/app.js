@@ -31,5 +31,7 @@ io.on("connection", socket => {
 
   socket.on("changeZoomServer", d => {
     socket.broadcast.emit("changeZoom", d);
-  })
+  });
+
+  socket.on("changeChartServer", b => socket.broadcast.emit("changeChart", b));
 });
