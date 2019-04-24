@@ -1,6 +1,7 @@
 import React from "react";
 import Vis from "./Vis";
 import Tree from "./Tree";
+import Bars from "./Bars";
 import TopBar from "./TopBar";
 import * as d3 from "d3";
 import io from "socket.io-client";
@@ -42,7 +43,7 @@ class Root extends React.Component {
             cb={this.selectCountry}
             selected={this.state.selectedCountries}
           />
-          <Vis
+          <Bars
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
