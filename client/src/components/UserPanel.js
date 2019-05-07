@@ -5,7 +5,9 @@ class UserPanel extends React.Component {
     super(props);
   }
 
-  componentDidUpdate() {}
+  followUser(id) {
+    this.props.followUser(id);
+  }
 
   render() {
     return (
@@ -16,7 +18,18 @@ class UserPanel extends React.Component {
             background: u.color,
             animationDelay: -i + "s"
           };
-          return <div className="user-icon" key={u.id} style={style} />;
+          return (
+            <div
+              className={
+                u.id === this.props.following
+                  ? "user-icon selected"
+                  : "user-icon"
+              }
+              key={u.id}
+              style={style}
+              onClick={this.followUser.bind(this, u.id)}
+            />
+          );
         })}
       </div>
     );

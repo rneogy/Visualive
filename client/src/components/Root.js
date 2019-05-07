@@ -33,12 +33,10 @@ class Root extends React.Component {
 
     this.socket.on("connectionsUpdate", c => {
       this.setState({ connections: c });
-      console.log(this.state.connections);
     });
 
     this.socket.on("changeCountry", c => {
-      console.log(c);
-      this.setState({ selectedCountries: c });
+      this.setState({ selectedCountries: c, chartOpen: true });
     });
 
     this.socket.on("changeChart", t => this.setState({ chartType: t }));
@@ -55,6 +53,18 @@ class Root extends React.Component {
       }
     });
   }
+
+  followUser = id => {
+    if (this.state.following) {
+      this.socket.emit("unfollowUser", this.state.following);
+    }
+    if (this.state.following === id) {
+      this.setState({ following: null });
+    } else {
+      this.socket.emit("followUser", id);
+      this.setState({ following: id });
+    }
+  };
 
   selectCountry = c => {
     let countries = c;
@@ -108,7 +118,11 @@ class Root extends React.Component {
             <div className="row">
               <div className="col-10">{this.renderChart()}</div>
               <div className="col-2">
-                <UserPanel users={this.state.connections} />
+                <UserPanel
+                  users={this.state.connections}
+                  followUser={this.followUser}
+                  following={this.state.following}
+                />
               </div>
             </div>
           ) : null}

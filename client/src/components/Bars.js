@@ -156,7 +156,6 @@ class Vis extends React.Component {
         }
         return res;
       }, []);
-      console.log(countryData);
 
       const maxIncome = d3.max(countryData, c => c.income);
 

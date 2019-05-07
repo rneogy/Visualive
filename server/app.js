@@ -27,7 +27,7 @@ io.on("connection", socket => {
   console.log("User " + socket.id + " connected. Assigned color: " + color);
   const thisConnection = {
     id: socket.id,
-    color: color, 
+    color: color,
     tracking: [],
     following: null
   };
@@ -51,13 +51,23 @@ io.on("connection", socket => {
     socket.broadcast.emit("changeCountry", c);
   });
 
+  socket.on("followUser", id => {
+    console.log(socket.id + " following " + id);
+    socket.join(id);
+  });
+
+  socket.on("unfollowUser", id => {
+    console.log(socket.id + " unfollowing " + id);
+    socket.leave(id);
+  });
+
   socket.on("changeZoomServer", d => {
-    socket.broadcast.emit("changeZoom", d);
+    socket.to(socket.id).emit("changeZoom", d);
   });
 
   socket.on("changeChartServer", b => {
     State.chartType = b;
-    socket.broadcast.emit("changeChart", b)
+    socket.broadcast.emit("changeChart", b);
   });
 
   socket.on("disconnect", () => {
@@ -66,10 +76,9 @@ io.on("connection", socket => {
       if (c.id === socket.id) {
         colors.push(c.color);
       }
-      return c.id !== socket.id
+      return c.id !== socket.id;
     });
 
-    
     if (State.connections.length === 0) {
       // reset to base condition if all connections gone
       State.chartOpen = false;
