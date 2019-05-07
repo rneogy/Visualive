@@ -4,7 +4,8 @@ const path = require("path");
 const app = express();
 const http = require("http").Server(app);
 const io = require("socket.io")(http);
-let numConnected = 0;
+const d3 = require("d3");
+const colors = d3.schemeSet3;
 
 const publicPath = path.resolve(__dirname, "..", "client", "dist");
 
@@ -14,9 +15,28 @@ http.listen(3000, () => {
   console.log(`Listening on port 3000 and looking in folder ${publicPath}`);
 });
 
+const State = {
+  connections: [],
+  chartOpen: false,
+  chartType: "bars",
+  selectedCountries: []
+};
+
 io.on("connection", socket => {
-  numConnected += 1;
-  console.log("a user connected they are user number " + numConnected);
+  const color = colors.pop(); // this breaks if there are more people online than there are colors
+  console.log("User " + socket.id + " connected. Assigned color: " + color);
+  const thisConnection = {
+    id: socket.id,
+    color: color, 
+    tracking: [],
+    following: null
+  };
+  State.connections.push(thisConnection);
+
+  // send full state to newly connected client
+  socket.emit("initState", State);
+  // send new client connection to everyone else
+  socket.broadcast.emit("connectionsUpdate", State.connections);
 
   socket.on("highlightServer", i => {
     socket.broadcast.emit("highlight", i);
@@ -26,6 +46,8 @@ io.on("connection", socket => {
   });
 
   socket.on("changeCountryServer", c => {
+    State.chartOpen = true;
+    State.selectedCountries = c;
     socket.broadcast.emit("changeCountry", c);
   });
 
@@ -33,5 +55,27 @@ io.on("connection", socket => {
     socket.broadcast.emit("changeZoom", d);
   });
 
-  socket.on("changeChartServer", b => socket.broadcast.emit("changeChart", b));
+  socket.on("changeChartServer", b => {
+    State.chartType = b;
+    socket.broadcast.emit("changeChart", b)
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User " + socket.id + " disconnected.");
+    State.connections = State.connections.filter(c => {
+      if (c.id === socket.id) {
+        colors.push(c.color);
+      }
+      return c.id !== socket.id
+    });
+
+    
+    if (State.connections.length === 0) {
+      // reset to base condition if all connections gone
+      State.chartOpen = false;
+      State.chartType = "bars";
+      State.selectedCountries = [];
+    }
+    io.emit("connectionsUpdate", State.connections);
+  });
 });
