@@ -1,5 +1,5 @@
 import React from "react";
-import Vis from "./Vis";
+import Lines from "./Lines";
 import Bars from "./Bars";
 import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
@@ -16,7 +16,7 @@ class Root extends React.Component {
       selectedCountries: [],
       data: [],
       chartOpen: false,
-      chartType: "bars",
+      chartType: chartTypes[0],
       connections: [],
       tracking: [],
       following: null
@@ -92,7 +92,7 @@ class Root extends React.Component {
         );
       case "lines":
         return (
-          <Vis
+          <Lines
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
