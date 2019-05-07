@@ -53,16 +53,17 @@ io.on("connection", socket => {
 
   socket.on("followUser", id => {
     console.log(socket.id + " following " + id);
-    socket.join(id);
+    socket.join(id + "-followers");
+    io.to(id).emit("sendZoom");
   });
 
   socket.on("unfollowUser", id => {
     console.log(socket.id + " unfollowing " + id);
-    socket.leave(id);
+    socket.leave(id + "-followers");
   });
 
   socket.on("changeZoomServer", d => {
-    socket.to(socket.id).emit("changeZoom", d);
+    socket.to(socket.id + "-followers").emit("changeZoom", d);
   });
 
   socket.on("changeChartServer", b => {

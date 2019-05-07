@@ -72,7 +72,6 @@ class Root extends React.Component {
       countries = [c];
     }
     countries = countries.map(i => i.value);
-    console.log(countries);
     this.setState({
       selectedCountries: countries,
       chartOpen: true

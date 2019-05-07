@@ -33,6 +33,10 @@ class Lines extends React.Component {
       d3.selectAll(".chart-line").attr("d", this.line);
     });
 
+    this.socket.on("sendZoom", () => {
+      this.socket.emit("changeZoomServer", this.t.domain());
+    });
+
     document.addEventListener("keydown", e => {
       if (e.keyCode === 27) {
         // escape
@@ -228,48 +232,6 @@ class Lines extends React.Component {
         .duration(500)
         .attr("opacity", 0)
         .remove();
-
-      // const bars = main.selectAll("rect.bar").data(countryData);
-
-      // bars
-      //   .enter()
-      //   .append("rect")
-      //   .classed("bar", true)
-      //   .attr("x", d => {
-      //     return this.x(d.year);
-      //   })
-      //   .attr("y", d => {
-      //     return this.y(d.income) - h / 2;
-      //   })
-      //   .attr("width", this.dx / 2)
-      //   .attr("height", d => 0.95 * h - this.y(d.income))
-      //   .attr("fill", barColor)
-      //   .attr("id", (_, i) => "b-" + i)
-      //   .attr("opacity", 0)
-      //   .on("mouseover", this.onMouseOverBar)
-      //   .on("mouseout", this.onMouseOutBar)
-      //   .transition()
-      //   .delay((_, i) => i * 3)
-      //   .duration(1000)
-      //   .attr("opacity", 1)
-      //   .attr("y", d => {
-      //     return this.y(d.income);
-      //   });
-
-      // bars
-      //   .transition()
-      //   .delay((_, i) => i * 3)
-      //   .duration(1000)
-      //   .attr("x", d => {
-      //     return this.x(d.year);
-      //   })
-      //   .attr("y", d => {
-      //     return this.y(d.income);
-      //   })
-      //   .attr("width", this.dx / 2)
-      //   .attr("height", d => 0.95 * h - this.y(d.income))
-      //   .attr("fill", barColor)
-      //   .attr("id", (_, i) => "b-" + i);
     };
 
     setTimeout(this.renderChart, 100);
@@ -289,6 +251,11 @@ class Lines extends React.Component {
   componentDidUpdate = () => {
     this.renderChart();
   };
+
+  // d3 handles rerendering, don't let react rerender unless data changes!
+  shouldComponentUpdate(nextProps) {
+    return this.props.selected !== nextProps.selected;
+  }
 
   render() {
     return <div id="vis" ref={divElement => (this.divElement = divElement)} />;

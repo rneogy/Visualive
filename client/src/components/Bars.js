@@ -35,6 +35,11 @@ class Bars extends React.Component {
       });
     });
 
+    this.socket.on("sendZoom", () => {
+      console.log("sending zoom to followers!");
+      this.socket.emit("changeZoomServer", this.t.domain());
+    });
+
     document.addEventListener("keydown", e => {
       if (e.keyCode === 27) {
         // escape
@@ -234,6 +239,11 @@ class Bars extends React.Component {
   componentDidUpdate = () => {
     this.renderChart();
   };
+
+  // d3 handles rerendering, don't let react rerender unless data changes!
+  shouldComponentUpdate(nextProps) {
+    return this.props.selected !== nextProps.selected;
+  }
 
   render() {
     return <div id="vis" ref={divElement => (this.divElement = divElement)} />;
