@@ -96,7 +96,7 @@ class Vis extends React.Component {
 
   loadChart() {
     const w = this.divElement.clientWidth;
-    const h = document.documentElement.clientHeight;
+    const h = this.divElement.clientHeight;
     this.dx = w / (2040 - 1800);
 
     this.svg = d3

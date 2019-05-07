@@ -17,6 +17,13 @@ class TopBar extends React.Component {
     this.props.cb(v);
   };
 
+  componentDidMount() {
+    if (!this.state.slidden && this.props.slidden) {
+      document.querySelector("#top-bar").style.top = 0;
+      this.setState({ slidden: true });
+    }
+  }
+
   componentDidUpdate() {
     if (this.props.selected.length > 0) {
       if (!this.state.slidden) {

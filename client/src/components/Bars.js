@@ -78,7 +78,7 @@ class Vis extends React.Component {
 
   loadChart() {
     const w = this.divElement.clientWidth;
-    const h = document.documentElement.clientHeight;
+    const h = this.divElement.clientHeight;
     this.dx = w / (2040 - 1800);
 
     this.svg = d3
@@ -156,7 +156,6 @@ class Vis extends React.Component {
         }
         return res;
       }, []);
-      console.log(countryData);
 
       const maxIncome = d3.max(countryData, c => c.income);
 
