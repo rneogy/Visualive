@@ -5,7 +5,7 @@ const barColor = "#c5d2e8";
 const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
-class Vis extends React.Component {
+class Bars extends React.Component {
   constructor(props) {
     super(props);
     this.socket = this.props.socket;
@@ -240,4 +240,4 @@ class Vis extends React.Component {
   }
 }
 
-export default Vis;
+export default Bars;
