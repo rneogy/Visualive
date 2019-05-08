@@ -121,6 +121,7 @@ class Root extends React.Component {
                   users={this.state.connections}
                   followUser={this.followUser}
                   following={this.state.following}
+                  thisUser={this.socket.id}
                 />
               </div>
             </div>

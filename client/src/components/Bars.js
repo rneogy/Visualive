@@ -121,7 +121,7 @@ class Bars extends React.Component {
     this.zoom = d3
       .zoom()
       .scaleExtent([1, 20])
-      .translateExtent([[-100, 0], [w + 100, 0]])
+      .translateExtent([[0, 0], [w, 0]])
       .on("zoom", this.zoomed);
 
     this.svg.call(this.zoom);
