@@ -19,7 +19,9 @@ class Root extends React.Component {
       chartType: chartTypes[0],
       connections: [],
       tracking: [],
-      following: null
+      following: null,
+      color: "",
+      id: ""
     };
     d3.csv("/data/income.csv").then(d => {
       this.setState({ data: d });
@@ -29,6 +31,7 @@ class Root extends React.Component {
       this.setState({
         ...s
       });
+      console.log(this.state);
     });
 
     this.socket.on("connectionsUpdate", c => {
@@ -87,6 +90,7 @@ class Root extends React.Component {
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
+            color={this.state.color}
           />
         );
       case "lines":
@@ -95,6 +99,7 @@ class Root extends React.Component {
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
+            color={this.state.color}
           />
         );
     }
@@ -121,7 +126,7 @@ class Root extends React.Component {
                   users={this.state.connections}
                   followUser={this.followUser}
                   following={this.state.following}
-                  thisUser={this.socket.id}
+                  thisUser={this.state.id}
                 />
               </div>
             </div>

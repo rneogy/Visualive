@@ -2,7 +2,6 @@ import React from "react";
 import * as d3 from "d3";
 
 const barColor = "#c5d2e8";
-const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
 class Lines extends React.Component {
@@ -16,9 +15,9 @@ class Lines extends React.Component {
   componentDidMount() {
     this.loadChart();
 
-    this.socket.on("highlight", i => {
-      d3.select("#line-" + i)
-        .attr("stroke", "white")
+    this.socket.on("highlight", d => {
+      d3.select("#line-" + d.i)
+        .attr("stroke", d.color)
         .classed("selected", true);
     });
 
@@ -48,39 +47,9 @@ class Lines extends React.Component {
     });
   }
 
-  onMouseOverBar = (d, i) => {
-    d3.select("#b-" + i)
-      .attr("fill", highlightColor)
-      .attr("stroke", highlightColor)
-      .attr("stroke-width", this.dx / 2);
-
-    // Specify where to put label of text
-    d3.select("svg")
-      .append("text")
-      .attr("id", "t-" + i)
-      .attr("x", this.t(d.year))
-      .attr("y", this.y(d.income) - 20)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("font-size", "20px")
-      .text(d.year + ": $" + d.income);
-
-    this.socket.emit("highlightServer", i);
-  };
-
-  onMouseOutBar = (d, i) => {
-    d3.select("#b-" + i)
-      .attr("fill", barColor)
-      .attr("stroke", "none");
-
-    d3.select("#t-" + i).remove(); // Remove text location
-
-    this.socket.emit("unhighlightServer", i);
-  };
-
   onMouseOverLine = (d, i) => {
     d3.select("#line-" + i).classed("selected", true);
-    this.socket.emit("highlightServer", i);
+    this.socket.emit("highlightServer", { i: i, color: this.props.color });
 
     const e = d3.event;
     const tt = document.createElement("div");

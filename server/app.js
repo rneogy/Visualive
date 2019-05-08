@@ -34,7 +34,7 @@ io.on("connection", socket => {
   State.connections.push(thisConnection);
 
   // send full state to newly connected client
-  socket.emit("initState", State);
+  socket.emit("initState", {...State, ...thisConnection});
   // send new client connection to everyone else
   socket.broadcast.emit("connectionsUpdate", State.connections);
 

@@ -2,7 +2,6 @@ import React from "react";
 import * as d3 from "d3";
 
 const barColor = "#c5d2e8";
-const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
 class Bars extends React.Component {
@@ -16,16 +15,17 @@ class Bars extends React.Component {
   componentDidMount() {
     this.loadChart();
 
-    this.socket.on("highlight", i => {
-      d3.select("#b-" + i)
-        .attr("fill", "white")
-        .classed("selected", true);
+    this.socket.on("highlight", d => {
+      d3.select("#b-" + d.i)
+        .attr("fill", d.color)
+        .attr("stroke", d.color)
+        .attr("stroke-width", this.dx / 2);
     });
 
     this.socket.on("unhighlight", i => {
       d3.select("#b-" + i)
         .attr("fill", barColor)
-        .classed("selected", false);
+        .attr("stroke", "none");
     });
 
     this.socket.on("changeZoom", d => {
@@ -53,8 +53,8 @@ class Bars extends React.Component {
 
   onMouseOverBar = (d, i) => {
     d3.select("#b-" + i)
-      .attr("fill", highlightColor)
-      .attr("stroke", highlightColor)
+      .attr("fill", this.props.color)
+      .attr("stroke", this.props.color)
       .attr("stroke-width", this.dx / 2);
 
     // Specify where to put label of text
@@ -68,7 +68,7 @@ class Bars extends React.Component {
       .attr("font-size", "20px")
       .text(d.year + ": $" + d.income);
 
-    this.socket.emit("highlightServer", i);
+    this.socket.emit("highlightServer", { i: i, color: this.props.color });
   };
 
   onMouseOutBar = (d, i) => {
