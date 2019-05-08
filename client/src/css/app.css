@@ -107,11 +107,17 @@ div.mytooltip {
   border-radius: 100%;
   margin: 5px auto;
   animation: breathe 3s infinite ease-in-out;
-  cursor: pointer;
   transition: 200ms;
+  font-size: 10px;
+  line-height: 30px;
+  color: #0c0c23;
 }
 
-.user-icon:hover {
+.user-icon.selectable {
+  cursor: pointer;
+}
+
+.user-icon.selectable:hover {
   border: solid rgb(0, 202, 0);
   border-width: 2px;
 }

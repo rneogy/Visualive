@@ -2,7 +2,6 @@ import React from "react";
 import * as d3 from "d3";
 
 const barColor = "#c5d2e8";
-const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
 class Bars extends React.Component {
@@ -16,16 +15,17 @@ class Bars extends React.Component {
   componentDidMount() {
     this.loadChart();
 
-    this.socket.on("highlight", i => {
-      d3.select("#b-" + i)
-        .attr("fill", "white")
-        .classed("selected", true);
+    this.socket.on("highlight", d => {
+      d3.select("#b-" + d.i)
+        .attr("fill", d.color)
+        .attr("stroke", d.color)
+        .attr("stroke-width", this.dx / 2);
     });
 
     this.socket.on("unhighlight", i => {
       d3.select("#b-" + i)
         .attr("fill", barColor)
-        .classed("selected", false);
+        .attr("stroke", "none");
     });
 
     this.socket.on("changeZoom", d => {
@@ -33,6 +33,11 @@ class Bars extends React.Component {
       d3.selectAll("rect.bar").attr("x", d => {
         return this.t(d.year);
       });
+    });
+
+    this.socket.on("sendZoom", () => {
+      console.log("sending zoom to followers!");
+      this.socket.emit("changeZoomServer", this.t.domain());
     });
 
     document.addEventListener("keydown", e => {
@@ -48,8 +53,8 @@ class Bars extends React.Component {
 
   onMouseOverBar = (d, i) => {
     d3.select("#b-" + i)
-      .attr("fill", highlightColor)
-      .attr("stroke", highlightColor)
+      .attr("fill", this.props.color)
+      .attr("stroke", this.props.color)
       .attr("stroke-width", this.dx / 2);
 
     // Specify where to put label of text
@@ -63,7 +68,7 @@ class Bars extends React.Component {
       .attr("font-size", "20px")
       .text(d.year + ": $" + d.income);
 
-    this.socket.emit("highlightServer", i);
+    this.socket.emit("highlightServer", { i: i, color: this.props.color });
   };
 
   onMouseOutBar = (d, i) => {
@@ -116,7 +121,7 @@ class Bars extends React.Component {
     this.zoom = d3
       .zoom()
       .scaleExtent([1, 20])
-      .translateExtent([[-100, 0], [w + 100, 0]])
+      .translateExtent([[0, 0], [w, 0]])
       .on("zoom", this.zoomed);
 
     this.svg.call(this.zoom);
@@ -234,6 +239,11 @@ class Bars extends React.Component {
   componentDidUpdate = () => {
     this.renderChart();
   };
+
+  // d3 handles rerendering, don't let react rerender unless data changes!
+  shouldComponentUpdate(nextProps) {
+    return this.props.selected !== nextProps.selected;
+  }
 
   render() {
     return <div id="vis" ref={divElement => (this.divElement = divElement)} />;
