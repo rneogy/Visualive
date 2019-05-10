@@ -30,14 +30,29 @@ class Bars extends React.Component {
 
     this.socket.on("changeZoom", d => {
       this.t.domain(d);
-      d3.selectAll("rect.bar").attr("x", d => {
-        return this.t(d.year);
-      });
+      d3.selectAll("rect.bar")
+        .attr("x", d => {
+          return this.t(d.year);
+        });
+    });
+
+    this.socket.on("changeZoomSmooth", d => {
+      this.t.domain(d);
+      d3.select("#xAxis")
+        .transition()
+        .duration(transitionDuration)
+        .call(this.xAxis);
+      d3.selectAll("rect.bar")
+        .transition()
+        .duration(transitionDuration)
+        .attr("x", d => {
+          return this.t(d.year);
+        });
     });
 
     this.socket.on("sendZoom", () => {
       console.log("sending zoom to followers!");
-      this.socket.emit("changeZoomServer", this.t.domain());
+      this.socket.emit("changeZoomSmoothServer", this.t.domain());
     });
 
     document.addEventListener("keydown", e => {

@@ -29,11 +29,25 @@ class Lines extends React.Component {
 
     this.socket.on("changeZoom", d => {
       this.t.domain(d);
+      d3.select("#xAxis")
+        .call(this.xAxis);
       d3.selectAll(".chart-line").attr("d", this.line);
     });
 
     this.socket.on("sendZoom", () => {
-      this.socket.emit("changeZoomServer", this.t.domain());
+      this.socket.emit("changeZoomSmoothServer", this.t.domain());
+    });
+
+    this.socket.on("changeZoomSmooth", d => {
+      this.t.domain(d);
+      d3.select("#xAxis")
+        .transition()
+        .duration(transitionDuration)
+        .call(this.xAxis);
+      d3.selectAll(".chart-line")
+        .transition()
+        .duration(transitionDuration)
+        .attr("d", this.line);
     });
 
     document.addEventListener("keydown", e => {
@@ -41,7 +55,7 @@ class Lines extends React.Component {
         // escape
         this.svg
           .transition()
-          .duration(1000)
+          .duration(transitionDuration)
           .call(this.zoom.transform, d3.zoomIdentity.scale(1));
       }
     });
@@ -198,7 +212,7 @@ class Lines extends React.Component {
       paths
         .exit()
         .transition()
-        .duration(500)
+        .duration(transitionDuration)
         .attr("opacity", 0)
         .remove();
     };

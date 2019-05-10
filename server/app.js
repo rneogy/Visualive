@@ -57,6 +57,10 @@ io.on("connection", socket => {
     io.to(id).emit("sendZoom");
   });
 
+  socket.on("changeZoomSmoothServer", z => {
+    socket.to(socket.id + "-followers").emit("changeZoomSmooth", z);    
+  });
+
   socket.on("unfollowUser", id => {
     console.log(socket.id + " unfollowing " + id);
     socket.leave(id + "-followers");
