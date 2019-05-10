@@ -72,6 +72,7 @@ class Tree extends React.Component {
         .enter()
         .append("path")
         .attr("class", "link")
+        .style("stroke", "white")
         .attr("d", function(d) {
           return (
             "M" +
@@ -114,7 +115,8 @@ class Tree extends React.Component {
         .attr("text-anchor", "middle")
         .attr("x", o.x)
         .attr("dy", -10)
-        .attr("y", o.y);
+        .attr("y", o.y)
+        .style("fill", "white");
     });
   }
 

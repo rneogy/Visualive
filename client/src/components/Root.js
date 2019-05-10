@@ -1,9 +1,12 @@
 import React from "react";
-import Vis from "./Vis";
-import Tree from "./Tree";
+import Lines from "./Lines";
+import Bars from "./Bars";
 import TopBar from "./TopBar";
+import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
+
+const chartTypes = ["bars", "lines"];
 
 class Root extends React.Component {
   constructor(props) {
@@ -11,42 +14,134 @@ class Root extends React.Component {
     this.socket = io();
     this.state = {
       selectedCountries: [],
-      data: []
+      data: [],
+      chartOpen: false,
+      chartType: chartTypes[0],
+      connections: [],
+      tracking: [],
+      following: null,
+      color: "",
+      id: ""
     };
     d3.csv("/data/income.csv").then(d => {
       this.setState({ data: d });
     });
 
+    this.socket.on("initState", s => {
+      this.setState({
+        ...s
+      });
+      console.log(this.state);
+    });
+
+    this.socket.on("connectionsUpdate", c => {
+      this.setState({ connections: c });
+    });
+
     this.socket.on("changeCountry", c => {
-      console.log(c);
-      this.setState({selectedCountries: c});
+      this.setState({ selectedCountries: c, chartOpen: true });
+    });
+
+    this.socket.on("changeChart", t => this.setState({ chartType: t }));
+
+    document.addEventListener("keydown", e => {
+      if (e.keyCode === 17) {
+        this.setState({
+          chartType:
+            chartTypes[
+              (chartTypes.indexOf(this.state.chartType) + 1) % chartTypes.length
+            ]
+        });
+        this.socket.emit("changeChartServer", this.state.chartType);
+      }
     });
   }
 
+  followUser = id => {
+    if (this.state.following) {
+      this.socket.emit("unfollowUser", this.state.following);
+    }
+    if (this.state.following === id) {
+      this.setState({ following: null });
+    } else {
+      this.socket.emit("followUser", id);
+      this.setState({ following: id });
+    }
+  };
+
   selectCountry = c => {
-    const countries = c.map(i => i.value);
+    let countries = c;
+    if (!this.isMultiSelect()) {
+      countries = [c];
+    }
+    countries = countries.map(i => i.value);
     this.setState({
-      selectedCountries: countries
+      selectedCountries: countries,
+      chartOpen: true
     });
     this.socket.emit("changeCountryServer", countries);
+  };
+
+  renderChart = () => {
+    switch (this.state.chartType) {
+      case "bars":
+        return (
+          <Bars
+            data={this.state.data}
+            selected={this.state.selectedCountries}
+            socket={this.socket}
+            color={this.state.color}
+          />
+        );
+      case "lines":
+        return (
+          <Lines
+            data={this.state.data}
+            selected={this.state.selectedCountries}
+            socket={this.socket}
+            color={this.state.color}
+          />
+        );
+    }
+  };
+
+  isMultiSelect = () => {
+    switch (this.state.chartType) {
+      case "bars":
+        return false;
+      case "lines":
+        return true;
+    }
   };
 
   render() {
     if (this.state.data.length > 0) {
       return (
-        <div className="container">
-          <TopBar
-            items={this.state.data.map(d => {
-              return { value: d.country, label: d.country };
-            })}
-            cb={this.selectCountry}
-            selected={this.state.selectedCountries}
-          />
-          <Vis
-            data={this.state.data}
-            selected={this.state.selectedCountries}
-            socket={this.socket}
-          />
+        <div className="container-fluid">
+          {this.state.chartOpen ? (
+            <div className="row">
+              <div className="col-10">{this.renderChart()}</div>
+              <div className="col-2">
+                <UserPanel
+                  users={this.state.connections}
+                  followUser={this.followUser}
+                  following={this.state.following}
+                  thisUser={this.state.id}
+                />
+              </div>
+            </div>
+          ) : null}
+          <div className="row">
+            <TopBar
+              items={this.state.data.map(d => {
+                return { value: d.country, label: d.country };
+              })}
+              cb={this.selectCountry}
+              selected={this.state.selectedCountries}
+              multi={this.isMultiSelect()}
+              slidden={this.state.chartOpen}
+            />
+          </div>
         </div>
       );
     } else {

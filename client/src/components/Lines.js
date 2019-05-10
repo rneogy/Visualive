@@ -2,10 +2,9 @@ import React from "react";
 import * as d3 from "d3";
 
 const barColor = "#c5d2e8";
-const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
-class Vis extends React.Component {
+class Lines extends React.Component {
   constructor(props) {
     super(props);
     this.socket = this.props.socket;
@@ -16,9 +15,9 @@ class Vis extends React.Component {
   componentDidMount() {
     this.loadChart();
 
-    this.socket.on("highlight", i => {
-      d3.select("#line-" + i)
-        .attr("stroke", "white")
+    this.socket.on("highlight", d => {
+      d3.select("#line-" + d.i)
+        .attr("stroke", d.color)
         .classed("selected", true);
     });
 
@@ -30,7 +29,25 @@ class Vis extends React.Component {
 
     this.socket.on("changeZoom", d => {
       this.t.domain(d);
+      d3.select("#xAxis")
+        .call(this.xAxis);
       d3.selectAll(".chart-line").attr("d", this.line);
+    });
+
+    this.socket.on("sendZoom", () => {
+      this.socket.emit("changeZoomSmoothServer", this.t.domain());
+    });
+
+    this.socket.on("changeZoomSmooth", d => {
+      this.t.domain(d);
+      d3.select("#xAxis")
+        .transition()
+        .duration(transitionDuration)
+        .call(this.xAxis);
+      d3.selectAll(".chart-line")
+        .transition()
+        .duration(transitionDuration)
+        .attr("d", this.line);
     });
 
     document.addEventListener("keydown", e => {
@@ -38,45 +55,15 @@ class Vis extends React.Component {
         // escape
         this.svg
           .transition()
-          .duration(1000)
+          .duration(transitionDuration)
           .call(this.zoom.transform, d3.zoomIdentity.scale(1));
       }
     });
   }
 
-  onMouseOverBar = (d, i) => {
-    d3.select("#b-" + i)
-      .attr("fill", highlightColor)
-      .attr("stroke", highlightColor)
-      .attr("stroke-width", this.dx / 2);
-
-    // Specify where to put label of text
-    d3.select("svg")
-      .append("text")
-      .attr("id", "t-" + i)
-      .attr("x", this.t(d.year))
-      .attr("y", this.y(d.income) - 20)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("font-size", "20px")
-      .text(d.year + ": $" + d.income);
-
-    this.socket.emit("highlightServer", i);
-  };
-
-  onMouseOutBar = (d, i) => {
-    d3.select("#b-" + i)
-      .attr("fill", barColor)
-      .attr("stroke", "none");
-
-    d3.select("#t-" + i).remove(); // Remove text location
-
-    this.socket.emit("unhighlightServer", i);
-  };
-
   onMouseOverLine = (d, i) => {
     d3.select("#line-" + i).classed("selected", true);
-    this.socket.emit("highlightServer", i);
+    this.socket.emit("highlightServer", { i: i, color: this.props.color });
 
     const e = d3.event;
     const tt = document.createElement("div");
@@ -96,7 +83,7 @@ class Vis extends React.Component {
 
   loadChart() {
     const w = this.divElement.clientWidth;
-    const h = document.documentElement.clientHeight;
+    const h = this.divElement.clientHeight;
     this.dx = w / (2040 - 1800);
 
     this.svg = d3
@@ -134,7 +121,7 @@ class Vis extends React.Component {
     this.zoom = d3
       .zoom()
       .scaleExtent([1, 20])
-      .translateExtent([[-100, 0], [w + 100, 0]])
+      .translateExtent([[0, 0], [w, 0]])
       .on("zoom", this.zoomed);
 
     this.svg.call(this.zoom);
@@ -225,51 +212,9 @@ class Vis extends React.Component {
       paths
         .exit()
         .transition()
-        .duration(500)
+        .duration(transitionDuration)
         .attr("opacity", 0)
         .remove();
-
-      // const bars = main.selectAll("rect.bar").data(countryData);
-
-      // bars
-      //   .enter()
-      //   .append("rect")
-      //   .classed("bar", true)
-      //   .attr("x", d => {
-      //     return this.x(d.year);
-      //   })
-      //   .attr("y", d => {
-      //     return this.y(d.income) - h / 2;
-      //   })
-      //   .attr("width", this.dx / 2)
-      //   .attr("height", d => 0.95 * h - this.y(d.income))
-      //   .attr("fill", barColor)
-      //   .attr("id", (_, i) => "b-" + i)
-      //   .attr("opacity", 0)
-      //   .on("mouseover", this.onMouseOverBar)
-      //   .on("mouseout", this.onMouseOutBar)
-      //   .transition()
-      //   .delay((_, i) => i * 3)
-      //   .duration(1000)
-      //   .attr("opacity", 1)
-      //   .attr("y", d => {
-      //     return this.y(d.income);
-      //   });
-
-      // bars
-      //   .transition()
-      //   .delay((_, i) => i * 3)
-      //   .duration(1000)
-      //   .attr("x", d => {
-      //     return this.x(d.year);
-      //   })
-      //   .attr("y", d => {
-      //     return this.y(d.income);
-      //   })
-      //   .attr("width", this.dx / 2)
-      //   .attr("height", d => 0.95 * h - this.y(d.income))
-      //   .attr("fill", barColor)
-      //   .attr("id", (_, i) => "b-" + i);
     };
 
     setTimeout(this.renderChart, 100);
@@ -290,9 +235,14 @@ class Vis extends React.Component {
     this.renderChart();
   };
 
+  // d3 handles rerendering, don't let react rerender unless data changes!
+  shouldComponentUpdate(nextProps) {
+    return this.props.selected !== nextProps.selected;
+  }
+
   render() {
     return <div id="vis" ref={divElement => (this.divElement = divElement)} />;
   }
 }
 
-export default Vis;
+export default Lines;
