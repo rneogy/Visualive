@@ -51,14 +51,11 @@ io.on("connection", socket => {
     socket.broadcast.emit("changeCountry", c);
   });
 
+  // Following logic
   socket.on("followUser", id => {
     console.log(socket.id + " following " + id);
     socket.join(id + "-followers");
     io.to(id).emit("sendZoom");
-  });
-
-  socket.on("changeZoomSmoothServer", z => {
-    socket.to(socket.id + "-followers").emit("changeZoomSmooth", z);    
   });
 
   socket.on("unfollowUser", id => {
@@ -66,8 +63,29 @@ io.on("connection", socket => {
     socket.leave(id + "-followers");
   });
 
+  socket.on("changeZoomSmoothServer", z => {
+    socket.to(socket.id + "-followers").emit("changeZoomSmooth", z);
+  });
+
   socket.on("changeZoomServer", d => {
     socket.to(socket.id + "-followers").emit("changeZoom", d);
+    socket.to(socket.id + "-trackers").emit("trackZoom", d);
+  });
+
+  // Tracking logic
+  socket.on("trackUser", id => {
+    console.log(socket.id + " tracking " + id);
+    socket.join(id + "-trackers");
+    io.to(id).emit("sendTrackZoom");
+  });
+
+  socket.on("untrackUser", id => {
+    console.log(socket.id + " untracking " + id);
+    socket.leave(id + "-trackers");
+  });
+
+  socket.on("trackZoomServer", d => {
+    socket.to(socket.id + "-trackers").emit("trackZoom", d);
   });
 
   socket.on("changeChartServer", b => {

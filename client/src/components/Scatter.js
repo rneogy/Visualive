@@ -2,94 +2,37 @@ import React from "react";
 import * as d3 from "d3";
 
 const barColor = "#c5d2e8";
+const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
-class Bars extends React.Component {
+class Vis extends React.Component {
   constructor(props) {
     super(props);
     this.socket = this.props.socket;
     this.data = this.props.data;
+    this.colors = d3.schemePastel1;
   }
 
   componentDidMount() {
     this.loadChart();
 
-    this.socket.on("highlight", d => {
-      d3.select("#b-" + d.i)
-        .attr("fill", d.color)
-        .attr("stroke", d.color)
-        .attr("stroke-width", this.dx / 2);
+    this.socket.on("highlight", i => {
+      d3.select("#b-" + i)
+        .attr("fill", "white")
+        .classed("selected", true);
     });
 
     this.socket.on("unhighlight", i => {
       d3.select("#b-" + i)
         .attr("fill", barColor)
-        .attr("stroke", "none");
+        .classed("selected", false);
     });
 
     this.socket.on("changeZoom", d => {
-      this.t.domain(d.z);
-      this.dx =
-        (this.t.range()[1] - this.t.range()[0]) /
-        (this.t.domain()[1] - this.t.domain()[0]);
-      d3.selectAll("rect.bar")
-        .attr("x", d => {
-          return this.t(d.year);
-        })
-        .attr("width", this.dx / 2);
-      d3.select("#xAxis").call(this.xAxis);
-    });
-
-    this.socket.on("changeZoomSmooth", d => {
-      this.t.domain(d.z);
-      this.dx =
-        (this.t.range()[1] - this.t.range()[0]) /
-        (this.t.domain()[1] - this.t.domain()[0]);
-      d3.select("#xAxis")
-        .transition()
-        .duration(transitionDuration)
-        .call(this.xAxis);
-      d3.selectAll("rect.bar")
-        .transition()
-        .duration(transitionDuration)
-        .attr("x", d => {
-          return this.t(d.year);
-        })
-        .attr("width", this.dx / 2);
-    });
-
-    this.socket.on("sendZoom", () => {
-      console.log("sending zoom to followers!");
-      this.socket.emit("changeZoomSmoothServer", {
-        z: this.t.domain(),
-        color: this.props.color
+      this.t.domain(d);
+      d3.selectAll("rect.bar").attr("x", d => {
+        return this.t(d.year);
       });
-    });
-
-    this.socket.on("sendTrackZoom", () => {
-      this.socket.emit("trackZoomServer", {
-        z: this.t.domain(),
-        color: this.props.color
-      });
-    });
-
-    this.socket.on("trackZoom", d => {
-      if (!this.props.tracking) {
-        return;
-      }
-      let tracker = this.main.select("rect.trackZoom");
-      if (!tracker.node()) {
-        tracker = this.main.append("rect").classed("trackZoom", true);
-      }
-      tracker
-        .attr("x", this.t(d.z[0]))
-        .attr("y", this.y.range()[1])
-        .attr("width", this.t(d.z[1]) - this.t(d.z[0]))
-        .attr("height", this.y.range()[0] - this.y.range()[1])
-        .attr("stroke", d.color)
-        .attr("stroke-width", 5)
-        .attr("fill-opacity", 0)
-        .attr("opacity", 0.8);
     });
 
     document.addEventListener("keydown", e => {
@@ -103,10 +46,10 @@ class Bars extends React.Component {
     });
   }
 
-  onMouseOverBar = (d, i) => {
-    d3.select("#b-" + i)
-      .attr("fill", this.props.color)
-      .attr("stroke", this.props.color)
+  onMouseOverCircle = (d, i) => {
+    d3.select("#c-" + i)
+      .attr("fill", highlightColor)
+      .attr("stroke", highlightColor)
       .attr("stroke-width", this.dx / 2);
 
     // Specify where to put label of text
@@ -120,11 +63,11 @@ class Bars extends React.Component {
       .attr("font-size", "20px")
       .text(d.year + ": $" + d.income);
 
-    this.socket.emit("highlightServer", { i: i, color: this.props.color });
+    this.socket.emit("highlightServer", i);
   };
 
-  onMouseOutBar = (d, i) => {
-    d3.select("#b-" + i)
+  onMouseOutCircle = (d, i) => {
+    d3.select("#c-" + i)
       .attr("fill", barColor)
       .attr("stroke", "none");
 
@@ -189,11 +132,14 @@ class Bars extends React.Component {
       .attr("width", 0.9 * w)
       .attr("height", 0.9 * h);
 
-    this.main = this.svg
+    const main = this.svg
       .append("g")
       .attr("class", "main")
       .attr("clip-path", "url(#clip)");
 
+    // brushing
+    let brush = d3.brush()
+    
     this.line = d3
       .line()
       .x(d => this.t(d.year))
@@ -213,6 +159,7 @@ class Bars extends React.Component {
         }
         return res;
       }, []);
+      // console.log(countryData);
 
       const maxIncome = d3.max(countryData, c => c.income);
 
@@ -233,47 +180,88 @@ class Bars extends React.Component {
         .duration(transitionDuration)
         .call(this.yAxis);
 
-      const bars = this.main.selectAll("rect.bar").data(countryData);
+      const dots = main.selectAll("circle").data(countryData);
 
-      bars
+      dots
         .enter()
-        .append("rect")
-        .classed("bar", true)
-        .attr("x", d => {
+        .append("circle")
+        .classed("dot", true)
+        .attr("r", 5)
+        .attr("cx", d => {
           return this.x(d.year);
         })
-        .attr("y", d => {
-          return this.y(d.income) - h / 2;
+        .attr("cy", d => {
+          return this.y(d.income);
         })
-        .attr("width", this.dx / 2)
-        .attr("height", d => 0.95 * h - this.y(d.income))
         .attr("fill", barColor)
-        .attr("id", (_, i) => "b-" + i)
         .attr("opacity", 0)
-        .on("mouseover", this.onMouseOverBar)
-        .on("mouseout", this.onMouseOutBar)
+        .attr("id", (_, i) => "c-" + i)
+        .on("mouseover", this.onMouseOverCircle)
+        .on("mouseout", this.onMouseOutCircle)
         .transition()
-        .delay((_, i) => i * 3)
         .duration(transitionDuration)
-        .attr("opacity", 1)
-        .attr("y", d => {
-          return this.y(d.income);
-        });
+        .attr("opacity", 1);
 
-      bars
+      dots
         .transition()
         .delay((_, i) => i * 3)
         .duration(transitionDuration)
-        .attr("x", d => {
+        .attr("cx", d => {
           return this.x(d.year);
         })
-        .attr("y", d => {
+        .attr("cy", d => {
           return this.y(d.income);
         })
-        .attr("width", this.dx / 2)
-        .attr("height", d => 0.95 * h - this.y(d.income))
+        .attr("r", 5)
         .attr("fill", barColor)
-        .attr("id", (_, i) => "b-" + i);
+        .attr("id", (_, i) => "c-" + i);
+
+      dots
+        .exit()
+        .transition()
+        .duration(500)
+        .attr("opacity", 0)
+        .remove();
+      
+      main.call(brush);
+
+      // move lets you brush programmatically
+      brush.move(main, [[this.x(1900), this.y(10000)], [this.x(1950), this.y(5000)]]);
+      
+      const brush_overlay = document.getElementsByClassName("overlay")[0]
+
+      // function called when brush is started or moved, color doesn't work
+      const brush_start = function() {
+        const selection = document.getElementsByClassName("selection")[0]
+        // console.log(selection);
+        selection.style.color = "steelblue";
+
+        // console.log(d3.event.selection);
+      }
+      brush.on("start brush", brush_start);
+
+      const remove_brush = function() {
+        brush.move(main, [[0, 0], [0, 0]]);
+        document.getElementsByClassName("overlay")[0].style.display = "none";
+        main.on(".brush", null)
+      }
+
+      const add_brush = function() {
+        main.call(brush);
+        document.getElementsByClassName("overlay")[0].style.display = "initial";
+      }
+
+      // add or remove brush
+      document.addEventListener("keydown", e => {
+        if (e.keyCode === 16) {
+          const displayed = brush_overlay.style.display;
+          if (displayed == "none") {
+            add_brush();
+          } else {
+            remove_brush();
+          }
+        }
+      });
     };
 
     setTimeout(this.renderChart, 100);
@@ -281,37 +269,20 @@ class Bars extends React.Component {
 
   zoomed = () => {
     this.t = d3.event.transform.rescaleX(this.x);
-    this.dx =
-      (this.t.range()[1] - this.t.range()[0]) /
-      (this.t.domain()[1] - this.t.domain()[0]);
-    d3.selectAll("rect.bar")
-      .attr("x", d => {
-        return this.t(d.year);
-      })
-      .attr("width", this.dx / 2);
-    d3.select("#xAxis").call(this.xAxis.scale(this.t));
-    this.socket.emit("changeZoomServer", {
-      z: this.t.domain(),
-      color: this.props.color
+    d3.selectAll("circle").attr("cx", d => {
+      return this.t(d.year);
     });
+    d3.select("#xAxis").call(this.xAxis.scale(this.t));
+    this.socket.emit("changeZoomServer", this.t.domain());
   };
 
   componentDidUpdate = () => {
     this.renderChart();
   };
 
-  // d3 handles rerendering, don't let react rerender unless data changes!
-  shouldComponentUpdate(nextProps) {
-    if (this.props.tracking && !nextProps.tracking) {
-      const tracker = this.main.select("rect.trackZoom");
-      tracker.attr("opacity", 0);
-    }
-    return this.props.selected !== nextProps.selected;
-  }
-
   render() {
     return <div id="vis" ref={divElement => (this.divElement = divElement)} />;
   }
 }
 
-export default Bars;
+export default Vis;

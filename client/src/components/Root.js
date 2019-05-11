@@ -1,12 +1,13 @@
 import React from "react";
 import Lines from "./Lines";
 import Bars from "./Bars";
+import Scatter from "./Scatter";
 import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
 
-const chartTypes = ["bars", "lines"];
+const chartTypes = ["bars", "lines", "scatter"];
 
 class Root extends React.Component {
   constructor(props) {
@@ -21,7 +22,8 @@ class Root extends React.Component {
       tracking: [],
       following: null,
       color: "",
-      id: ""
+      id: "",
+      tracking: false
     };
     d3.csv("/data/income.csv").then(d => {
       this.setState({ data: d });
@@ -69,6 +71,16 @@ class Root extends React.Component {
     }
   };
 
+  trackUser = id => {
+    this.socket.emit("trackUser", id);
+    this.setState({tracking: true})
+  }
+
+  untrackUser = id => {
+    this.socket.emit("untrackUser", id);
+    this.setState({tracking: false})
+  }
+
   selectCountry = c => {
     let countries = c;
     if (!this.isMultiSelect()) {
@@ -91,6 +103,7 @@ class Root extends React.Component {
             selected={this.state.selectedCountries}
             socket={this.socket}
             color={this.state.color}
+            tracking={this.state.tracking}
           />
         );
       case "lines":
@@ -100,6 +113,15 @@ class Root extends React.Component {
             selected={this.state.selectedCountries}
             socket={this.socket}
             color={this.state.color}
+            tracking={this.state.tracking}
+          />
+        );
+      case "scatter":
+        return (
+          <Scatter
+            data={this.state.data}
+            selected={this.state.selectedCountries}
+            socket={this.socket}
           />
         );
     }
@@ -110,6 +132,8 @@ class Root extends React.Component {
       case "bars":
         return false;
       case "lines":
+        return true;
+      case "scatter":
         return true;
     }
   };
@@ -125,6 +149,8 @@ class Root extends React.Component {
                 <UserPanel
                   users={this.state.connections}
                   followUser={this.followUser}
+                  trackUser={this.trackUser}
+                  untrackUser={this.untrackUser}
                   following={this.state.following}
                   thisUser={this.state.id}
                 />
