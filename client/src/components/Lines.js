@@ -28,18 +28,46 @@ class Lines extends React.Component {
     });
 
     this.socket.on("changeZoom", d => {
-      this.t.domain(d);
-      d3.select("#xAxis")
-        .call(this.xAxis);
+      this.t.domain(d.z);
+      d3.select("#xAxis").call(this.xAxis);
       d3.selectAll(".chart-line").attr("d", this.line);
     });
 
     this.socket.on("sendZoom", () => {
-      this.socket.emit("changeZoomSmoothServer", this.t.domain());
+      this.socket.emit("changeZoomSmoothServer", {
+        z: this.t.domain(),
+        color: this.props.color
+      });
+    });
+
+    this.socket.on("sendTrackZoom", () => {
+      this.socket.emit("trackZoomServer", {
+        z: this.t.domain(),
+        color: this.props.color
+      });
+    });
+
+    this.socket.on("trackZoom", d => {
+      if (!this.props.tracking) {
+        return;
+      }
+      let tracker = this.main.select("rect.trackZoom");
+      if (!tracker.node()) {
+        tracker = this.main.append("rect").classed("trackZoom", true);
+      }
+      tracker
+        .attr("x", this.t(d.z[0]))
+        .attr("y", this.y.range()[1])
+        .attr("width", this.t(d.z[1]) - this.t(d.z[0]))
+        .attr("height", this.y.range()[0] - this.y.range()[1])
+        .attr("stroke", d.color)
+        .attr("stroke-width", 5)
+        .attr("fill-opacity", 0)
+        .attr("opacity", 0.8);
     });
 
     this.socket.on("changeZoomSmooth", d => {
-      this.t.domain(d);
+      this.t.domain(d.z);
       d3.select("#xAxis")
         .transition()
         .duration(transitionDuration)
@@ -78,7 +106,7 @@ class Lines extends React.Component {
   onMouseOutLine = (d, i) => {
     d3.select("#line-" + i).classed("selected", false);
     this.socket.emit("unhighlightServer", i);
-    document.querySelector("#tt-"+i).remove();
+    document.querySelector("#tt-" + i).remove();
   };
 
   loadChart() {
@@ -137,7 +165,7 @@ class Lines extends React.Component {
       .attr("width", 0.9 * w)
       .attr("height", 0.9 * h);
 
-    const main = this.svg
+    this.main = this.svg
       .append("g")
       .attr("class", "main")
       .attr("clip-path", "url(#clip)");
@@ -188,7 +216,7 @@ class Lines extends React.Component {
         .duration(transitionDuration)
         .call(this.yAxis);
 
-      const paths = main.selectAll("path.chart-line").data(countryData);
+      const paths = this.main.selectAll("path.chart-line").data(countryData);
 
       paths
         .enter()
@@ -225,10 +253,12 @@ class Lines extends React.Component {
     // d3.selectAll("rect.bar").attr("x", d => {
     //   return this.t(d.year);
     // });
-    d3.selectAll(".chart-line")
-      .attr("d", this.line)
+    d3.selectAll(".chart-line").attr("d", this.line);
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
-    this.socket.emit("changeZoomServer", this.t.domain());
+    this.socket.emit("changeZoomServer", {
+      z: this.t.domain(),
+      color: this.props.color
+    });
   };
 
   componentDidUpdate = () => {
@@ -237,6 +267,10 @@ class Lines extends React.Component {
 
   // d3 handles rerendering, don't let react rerender unless data changes!
   shouldComponentUpdate(nextProps) {
+    if (this.props.tracking && !nextProps.tracking) {
+      const tracker = this.main.select("rect.trackZoom");
+      tracker.attr("opacity", 0);
+    }
     return this.props.selected !== nextProps.selected;
   }
 

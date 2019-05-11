@@ -21,7 +21,8 @@ class Root extends React.Component {
       tracking: [],
       following: null,
       color: "",
-      id: ""
+      id: "",
+      tracking: false
     };
     d3.csv("/data/income.csv").then(d => {
       this.setState({ data: d });
@@ -69,6 +70,16 @@ class Root extends React.Component {
     }
   };
 
+  trackUser = id => {
+    this.socket.emit("trackUser", id);
+    this.setState({tracking: true})
+  }
+
+  untrackUser = id => {
+    this.socket.emit("untrackUser", id);
+    this.setState({tracking: false})
+  }
+
   selectCountry = c => {
     let countries = c;
     if (!this.isMultiSelect()) {
@@ -91,6 +102,7 @@ class Root extends React.Component {
             selected={this.state.selectedCountries}
             socket={this.socket}
             color={this.state.color}
+            tracking={this.state.tracking}
           />
         );
       case "lines":
@@ -100,6 +112,7 @@ class Root extends React.Component {
             selected={this.state.selectedCountries}
             socket={this.socket}
             color={this.state.color}
+            tracking={this.state.tracking}
           />
         );
     }
@@ -125,6 +138,8 @@ class Root extends React.Component {
                 <UserPanel
                   users={this.state.connections}
                   followUser={this.followUser}
+                  trackUser={this.trackUser}
+                  untrackUser={this.untrackUser}
                   following={this.state.following}
                   thisUser={this.state.id}
                 />

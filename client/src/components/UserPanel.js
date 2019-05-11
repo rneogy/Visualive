@@ -6,7 +6,25 @@ class UserPanel extends React.Component {
   }
 
   followUser(id) {
+    if (this.isYou(id)) {
+      return;
+    }
     this.props.followUser(id);
+    this.props.untrackUser(id);
+  }
+
+  trackUser(id) {
+    if (this.isYou(id)) {
+      return;
+    }
+    this.props.trackUser(id);
+  }
+
+  untrackUser(id) {
+    if (this.isYou(id)) {
+      return;
+    }
+    this.props.untrackUser(id);
   }
 
   isYou(id) {
@@ -31,7 +49,9 @@ class UserPanel extends React.Component {
               }
               key={u.id}
               style={style}
-              onClick={this.isYou(u.id) ? null : this.followUser.bind(this, u.id)}
+              onClick={this.followUser.bind(this, u.id)}
+              onMouseEnter={this.trackUser.bind(this, u.id)}
+              onMouseLeave={this.untrackUser.bind(this, u.id)}
             >{this.isYou(u.id) ? "you" : ""}</div>
           );
         })}
