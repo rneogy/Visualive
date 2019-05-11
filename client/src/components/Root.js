@@ -1,12 +1,13 @@
 import React from "react";
 import Lines from "./Lines";
 import Bars from "./Bars";
+import Scatter from "./Scatter";
 import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
 
-const chartTypes = ["bars", "lines"];
+const chartTypes = ["bars", "lines", "scatter"];
 
 class Root extends React.Component {
   constructor(props) {
@@ -115,6 +116,14 @@ class Root extends React.Component {
             tracking={this.state.tracking}
           />
         );
+      case "scatter":
+        return (
+          <Scatter
+            data={this.state.data}
+            selected={this.state.selectedCountries}
+            socket={this.socket}
+          />
+        );
     }
   };
 
@@ -123,6 +132,8 @@ class Root extends React.Component {
       case "bars":
         return false;
       case "lines":
+        return true;
+      case "scatter":
         return true;
     }
   };
