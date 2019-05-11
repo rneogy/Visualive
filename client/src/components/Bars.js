@@ -9,7 +9,6 @@ class Bars extends React.Component {
     super(props);
     this.socket = this.props.socket;
     this.data = this.props.data;
-    this.colors = d3.schemePastel1;
   }
 
   componentDidMount() {
@@ -30,13 +29,22 @@ class Bars extends React.Component {
 
     this.socket.on("changeZoom", d => {
       this.t.domain(d.z);
-      d3.selectAll("rect.bar").attr("x", d => {
-        return this.t(d.year);
-      });
+      this.dx =
+        (this.t.range()[1] - this.t.range()[0]) /
+        (this.t.domain()[1] - this.t.domain()[0]);
+      d3.selectAll("rect.bar")
+        .attr("x", d => {
+          return this.t(d.year);
+        })
+        .attr("width", this.dx / 2);
+      d3.select("#xAxis").call(this.xAxis);
     });
 
     this.socket.on("changeZoomSmooth", d => {
       this.t.domain(d.z);
+      this.dx =
+        (this.t.range()[1] - this.t.range()[0]) /
+        (this.t.domain()[1] - this.t.domain()[0]);
       d3.select("#xAxis")
         .transition()
         .duration(transitionDuration)
@@ -46,7 +54,8 @@ class Bars extends React.Component {
         .duration(transitionDuration)
         .attr("x", d => {
           return this.t(d.year);
-        });
+        })
+        .attr("width", this.dx / 2);
     });
 
     this.socket.on("sendZoom", () => {
@@ -76,7 +85,7 @@ class Bars extends React.Component {
         .attr("x", this.t(d.z[0]))
         .attr("y", this.y.range()[1])
         .attr("width", this.t(d.z[1]) - this.t(d.z[0]))
-        .attr("height", this.y.range()[0]-this.y.range()[1])
+        .attr("height", this.y.range()[0] - this.y.range()[1])
         .attr("stroke", d.color)
         .attr("stroke-width", 5)
         .attr("fill-opacity", 0)
@@ -272,9 +281,14 @@ class Bars extends React.Component {
 
   zoomed = () => {
     this.t = d3.event.transform.rescaleX(this.x);
-    d3.selectAll("rect.bar").attr("x", d => {
-      return this.t(d.year);
-    });
+    this.dx =
+      (this.t.range()[1] - this.t.range()[0]) /
+      (this.t.domain()[1] - this.t.domain()[0]);
+    d3.selectAll("rect.bar")
+      .attr("x", d => {
+        return this.t(d.year);
+      })
+      .attr("width", this.dx / 2);
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
     this.socket.emit("changeZoomServer", {
       z: this.t.domain(),

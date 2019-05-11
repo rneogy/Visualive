@@ -250,9 +250,6 @@ class Lines extends React.Component {
 
   zoomed = () => {
     this.t = d3.event.transform.rescaleX(this.x);
-    // d3.selectAll("rect.bar").attr("x", d => {
-    //   return this.t(d.year);
-    // });
     d3.selectAll(".chart-line").attr("d", this.line);
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
     this.socket.emit("changeZoomServer", {
