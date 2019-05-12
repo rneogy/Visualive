@@ -28,8 +28,7 @@ body {
 
 #vis {
   width: 100%;
-  height: 90vh;
-  margin-top: 10vh;
+  height: 85vh;
 }
 
 .link {
@@ -48,13 +47,15 @@ body {
 }
 
 #top-bar {
-  position: fixed;
-  top: 40vh;
-  left: 0;
+  margin-top:40vh;
   width: 100vw;
   padding-top: 5px;
   text-align: center;
   transition: 1000ms;
+}
+
+#top-container {
+  height: 15vh;
 }
 
 .main-title {
@@ -87,7 +88,6 @@ div.mytooltip {
 
 #user-panel {
   text-align: center;
-  padding-top: 10vh;
   color: #c5d2e8;
   animation: fadein 2s;
 }

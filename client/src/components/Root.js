@@ -60,8 +60,9 @@ class Root extends React.Component {
   }
 
   setChartType = type => {
-    this.setState({chartType: type});
-  }
+    this.setState({ chartType: type });
+    this.socket.emit("changeChartServer", type);
+  };
 
   followUser = id => {
     if (this.state.following) {
@@ -77,13 +78,13 @@ class Root extends React.Component {
 
   trackUser = id => {
     this.socket.emit("trackUser", id);
-    this.setState({tracking: true})
-  }
+    this.setState({ tracking: true });
+  };
 
   untrackUser = id => {
     this.socket.emit("untrackUser", id);
-    this.setState({tracking: false})
-  }
+    this.setState({ tracking: false });
+  };
 
   selectCountry = c => {
     let countries = c;
@@ -154,6 +155,19 @@ class Root extends React.Component {
     if (this.state.data.length > 0) {
       return (
         <div className="container-fluid">
+          <div className="row" id="top-container">
+            <TopBar
+              items={this.state.data.map(d => {
+                return { value: d.country, label: d.country };
+              })}
+              cb={this.selectCountry}
+              selected={this.state.selectedCountries}
+              multi={this.isMultiSelect()}
+              slidden={this.state.chartOpen}
+              chartType={this.state.chartType}
+              setChartType={this.setChartType}
+            />
+          </div>
           {this.state.chartOpen ? (
             <div className="row">
               <div className="col-11">{this.renderChart()}</div>
@@ -169,19 +183,6 @@ class Root extends React.Component {
               </div>
             </div>
           ) : null}
-          <div className="row">
-            <TopBar
-              items={this.state.data.map(d => {
-                return { value: d.country, label: d.country };
-              })}
-              cb={this.selectCountry}
-              selected={this.state.selectedCountries}
-              multi={this.isMultiSelect()}
-              slidden={this.state.chartOpen}
-              chartType={this.state.chartType}
-              setChartType={this.setChartType}
-            />
-          </div>
         </div>
       );
     } else {

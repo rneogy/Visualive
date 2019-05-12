@@ -165,7 +165,8 @@ class ChartTypeXZoom extends ChartType {
           }
         });
         this.extent = [
-          this.t.invert(selection[0]), this.t.invert(selection[1])
+          this.t.invert(selection[0]),
+          this.t.invert(selection[1])
         ];
       }
 
@@ -298,16 +299,14 @@ export class Bars extends ChartTypeXZoom {
       .attr("stroke", this.props.color)
       .attr("stroke-width", this.dx / 2);
 
-    // Specify where to put label of text
-    d3.select("svg")
-      .append("text")
-      .attr("id", "t-" + i)
-      .attr("x", this.t(d.year))
-      .attr("y", this.y(d.income) - 20)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("font-size", "20px")
-      .text(d.year + ": $" + d.income);
+    const e = d3.event;
+    const tt = document.createElement("div");
+    tt.classList.add("mytooltip");
+    tt.id = "tt-" + i;
+    tt.style.left = e.clientX + "px";
+    tt.style.top = e.clientY - 40 + "px";
+    tt.innerText = d.year + ": $" + d.income;
+    document.body.append(tt);
 
     this.socket.emit("highlightServer", { i: i, color: this.props.color });
   };
@@ -317,7 +316,7 @@ export class Bars extends ChartTypeXZoom {
       .attr("fill", this.barColor)
       .attr("stroke", "none");
 
-    d3.select("#t-" + i).remove(); // Remove text location
+    document.querySelector("#tt-" + i).remove();
 
     this.socket.emit("unhighlightServer", i);
   };
@@ -376,7 +375,6 @@ export class Lines extends ChartTypeXZoom {
   };
 
   render = countryData => {
-
     this.t = this.x;
     this.xAxis.scale(this.t);
 
@@ -651,16 +649,14 @@ export class Scatter extends ChartType {
       .attr("stroke", this.props.color)
       .attr("r", 10);
 
-    // Specify where to put label of text
-    d3.select("svg")
-      .append("text")
-      .attr("id", "t-" + i)
-      .attr("x", this.t(d.year))
-      .attr("y", this.t2(d.income) - 20)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("font-size", "20px")
-      .text(d.year + ": $" + d.income);
+    const e = d3.event;
+    const tt = document.createElement("div");
+    tt.classList.add("mytooltip");
+    tt.id = "tt-" + i;
+    tt.style.left = e.clientX + "px";
+    tt.style.top = e.clientY - 20 + "px";
+    tt.innerText = d.year + ": $" + d.income;
+    document.body.append(tt);
 
     this.socket.emit("highlightServer", { i: i, color: this.props.color });
   };
@@ -671,7 +667,7 @@ export class Scatter extends ChartType {
       .attr("stroke", "none")
       .attr("r", 5);
 
-    d3.select("#t-" + i).remove(); // Remove text location
+    document.querySelector("#tt-" + i).remove();
 
     this.socket.emit("unhighlightServer", i);
   };
