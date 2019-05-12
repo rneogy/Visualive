@@ -138,3 +138,9 @@ div.mytooltip {
     transform: translateX(3px);
   }
 }
+
+.brush-selected {
+  stroke: yellow;
+  stroke-width: 1px;
+  opacity: 1;
+}
