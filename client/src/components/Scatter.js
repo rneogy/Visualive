@@ -41,28 +41,23 @@ class Scatter extends React.Component {
       });
     });
 
-    this.socket.on("brush", d => {
-      const main = d3.select(".main");
-      if (!d) {
-        const disp = document.getElementsByClassName("overlay")[0];
-        console.log(disp)
-        if (disp) {
-          console.log(disp.style.display)
-        }
-        if (disp && disp.style.display != "none") {
-          d3.selectAll("circle").classed("brush-selected", false);
-          this.brush.move(main, [[0, 0], [0, 0]]);
-          main.on("brush", null);
-          return;
-        } else {
-          main.call(this.brush);
-          document.getElementsByClassName("overlay")[0].style.display = "initial";
-          d = [[0, 0], [0, 0]];
-        }
-      }
-      console.log("exit brush")
+    this.socket.on("changeBrush", d => {
       this.extent = d;
-      this.move_brush_to_extent();
+      const brush_overlay = document.getElementsByClassName("overlay")[0]
+      const main = d3.select(".main");
+      if (!brush_overlay) {
+        main.call(this.brush);
+      } else {
+        document.getElementsByClassName("overlay")[0].style.display = "initial";
+        this.move_brush_to_extent();
+      }
+    });
+
+    this.socket.on("removeBrush", d => {
+      const main = d3.select(".main");
+      d3.selectAll("circle").classed("brush-selected", false);
+      this.brush.move(main, [[0, 0], [0, 0]]);
+      main.on("brush", null);
     });
 
     document.addEventListener("keydown", e => {
@@ -261,7 +256,7 @@ class Scatter extends React.Component {
         this.brush.move(main, [[0, 0], [0, 0]]);
         this.extent = null;
         
-        this.socket.emit("brushServer", this.extent);
+        this.socket.emit("removeBrushServer", this.extent);
       }
 
       const add_brush = () => {
@@ -314,7 +309,7 @@ class Scatter extends React.Component {
                           [this.t.invert(selection[1][0]), this.t2.invert(selection[1][1])]]
         }
         
-        this.socket.emit("brushServer", this.extent);
+        this.socket.emit("changeBrushServer", this.extent);
       }
       this.brush.on("start brush", brush_start);
     };
@@ -346,7 +341,7 @@ class Scatter extends React.Component {
     
     if (this.extent) {
       this.move_brush_to_extent();
-      this.socket.emit("brushServer", this.extent);
+      this.socket.emit("changeBrushServer", this.extent);
     }
   };
 

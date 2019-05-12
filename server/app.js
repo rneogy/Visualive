@@ -77,8 +77,12 @@ io.on("connection", socket => {
     socket.to(socket.id + "-trackers").emit("trackZoomScatter", d);
   });
 
-  socket.on("brushServer", i => {
-    socket.to(socket.id + "-followers").emit("brush", i);
+  socket.on("changeBrushServer", i => {
+    socket.to(socket.id + "-followers").emit("changeBrush", i);
+  });
+  
+  socket.on("removeBrushServer", i => {
+    socket.to(socket.id + "-followers").emit("removeBrush", i);
   });
 
   // Tracking logic
