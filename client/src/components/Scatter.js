@@ -12,6 +12,7 @@ class Scatter extends React.Component {
     this.data = this.props.data;
     this.colors = d3.schemePastel1;
     this.brush = d3.brush();
+    this.extent = [[0, 0], [0, 0]]
   }
 
   componentDidMount() {
@@ -203,7 +204,7 @@ class Scatter extends React.Component {
         .on("mouseout", this.onMouseOutCircle)
         .transition()
         .duration(transitionDuration)
-        .attr("opacity", 1);
+        .attr("opacity", 0.8);
 
       dots
         .transition()
@@ -229,9 +230,12 @@ class Scatter extends React.Component {
 
       // brushing
       const remove_brush = () => {
-        this.brush.move(main, [[0, 0], [0, 0]]);
         document.getElementsByClassName("overlay")[0].style.display = "none";
         main.on(".brush", null)
+
+        d3.selectAll("circle").classed("brush-selected", false);
+        this.brush.move(main, [[0, 0], [0, 0]]);
+        this.extent = [[0, 0], [0, 0]]
       }
 
       const add_brush = () => {
@@ -257,17 +261,34 @@ class Scatter extends React.Component {
       });
 
       // move lets you brush programmatically
-      const move_brush = (x1, x2, y1, y2) => {
-        this.brush.move(main, [[this.x(x1), this.y(y1)], [this.x(x2), this.y(y2)]]);
+      const move_brush = (x1, y1, x2, y2) => {
+        this.brush.move(main, [[this.t(x1), this.t2(y1)], [this.t(x2), this.t2(y2)]]);
+      }
+
+      const is_brushed = (brush_coords, cx, cy) => {
+        var x0 = brush_coords[0][0],
+            x1 = brush_coords[1][0],
+            y0 = brush_coords[0][1],
+            y1 = brush_coords[1][1];
+        var ret = x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;    // This return TRUE or FALSE depending on if the points is in the selected area
+        return ret;
       }
       
       // function called when brush is started or moved, color doesn't work
-      const brush_start = function() {
-        const selection = document.getElementsByClassName("selection")[0]
-        // console.log(selection);
-        selection.style.color = "steelblue";
+      const brush_start = () => {
+        // const selection = document.getElementsByClassName("selection")[0]
+        // selection.style.color = "steelblue";
 
-        // console.log(d3.event.selection);
+        var selection = d3.event.selection;
+        if (selection) {
+          d3.selectAll("circle").classed("brush-selected", (d) => { 
+            return is_brushed(selection, this.t(d.year), this.t2(d.income))
+          })
+          this.extent = [[this.t.invert(selection[0][0]), this.t2.invert(selection[0][1])],
+                          [this.t.invert(selection[1][0]), this.t2.invert(selection[1][1])]]
+          console.log("set extent");
+          console.log(this.extent);
+        }
       }
       this.brush.on("start brush", brush_start);
     };
@@ -286,6 +307,15 @@ class Scatter extends React.Component {
     });
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
     d3.select("#yAxis").call(this.yAxis.scale(this.t2));
+    
+    const main = d3.select(".main");
+    console.log("new extent")
+    console.log(this.extent)
+    this.brush.move(main, [[this.t(this.extent[0][0]),
+                            this.t2(this.extent[0][1])],
+                            [this.t(this.extent[1][0]),
+                            this.t2(this.extent[1][1])]]);
+
     this.socket.emit("changeZoomServer", this.t.domain());
   };
 
