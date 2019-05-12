@@ -194,11 +194,6 @@ class Bars extends React.Component {
       .attr("class", "main")
       .attr("clip-path", "url(#clip)");
 
-    this.line = d3
-      .line()
-      .x(d => this.t(d.year))
-      .y(d => this.y(d.income));
-
     this.renderChart = () => {
       console.log("rendering " + this.props.selected);
       const rawCountryData = this.data.find(

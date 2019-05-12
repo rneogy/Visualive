@@ -30,14 +30,16 @@ class Scatter extends React.Component {
     });
 
     this.socket.on("changeZoom", d => {
-      this.t.domain(d);
-      // this.t2.domain(d[1]);
+      this.t.domain(d.x);
+      d3.select("#xAxis").call(this.xAxis);
+      d3.select("#yAxis").call(this.yAxis);
+      this.t2.domain(d.y);
       d3.selectAll("circle").attr("cx", d => {
         return this.t(d.year);
       });
-      // d3.selectAll("circle").attr("cy", d => {
-      //   return this.t2(d.income);
-      // });
+      d3.selectAll("circle").attr("cy", d => {
+        return this.t2(d.income);
+      });
     });
 
     document.addEventListener("keydown", e => {
@@ -141,7 +143,7 @@ class Scatter extends React.Component {
       .append("g")
       .attr("class", "main")
       .attr("clip-path", "url(#clip)");
-    
+
     this.line = d3
       .line()
       .x(d => this.t(d.year))
@@ -161,7 +163,6 @@ class Scatter extends React.Component {
         }
         return res;
       }, []);
-      // console.log(countryData);
 
       const maxIncome = d3.max(countryData, c => c.income);
 
@@ -170,7 +171,7 @@ class Scatter extends React.Component {
 
       this.y.domain([0, maxIncome]).nice();
 
-      this.t2 = this.y
+      this.t2 = this.y;
       this.yAxis.scale(this.t2);
 
       d3.select("#xAxis")
@@ -225,26 +226,25 @@ class Scatter extends React.Component {
         .duration(500)
         .attr("opacity", 0)
         .remove();
-      
 
       // brushing
       const remove_brush = () => {
         this.brush.move(main, [[0, 0], [0, 0]]);
         document.getElementsByClassName("overlay")[0].style.display = "none";
-        main.on(".brush", null)
-      }
+        main.on(".brush", null);
+      };
 
       const add_brush = () => {
         main.call(this.brush);
         document.getElementsByClassName("overlay")[0].style.display = "initial";
-      }
+      };
 
       // add or remove brush
       document.addEventListener("keydown", e => {
         if (e.keyCode === 16) {
-          const brush_overlay = document.getElementsByClassName("overlay")[0]
+          const brush_overlay = document.getElementsByClassName("overlay")[0];
           if (!brush_overlay) {
-            main.call(this.brush)
+            main.call(this.brush);
           } else {
             const displayed = brush_overlay.style.display;
             if (displayed == "none") {
@@ -258,17 +258,20 @@ class Scatter extends React.Component {
 
       // move lets you brush programmatically
       const move_brush = (x1, x2, y1, y2) => {
-        this.brush.move(main, [[this.x(x1), this.y(y1)], [this.x(x2), this.y(y2)]]);
-      }
-      
+        this.brush.move(main, [
+          [this.x(x1), this.y(y1)],
+          [this.x(x2), this.y(y2)]
+        ]);
+      };
+
       // function called when brush is started or moved, color doesn't work
       const brush_start = function() {
-        const selection = document.getElementsByClassName("selection")[0]
+        const selection = document.getElementsByClassName("selection")[0];
         // console.log(selection);
         selection.style.color = "steelblue";
 
         // console.log(d3.event.selection);
-      }
+      };
       this.brush.on("start brush", brush_start);
     };
 
@@ -286,8 +289,19 @@ class Scatter extends React.Component {
     });
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
     d3.select("#yAxis").call(this.yAxis.scale(this.t2));
-    this.socket.emit("changeZoomServer", this.t.domain());
+    this.socket.emit("changeZoomServer", {
+      x: this.t.domain(),
+      y: this.t2.domain()
+    });
   };
+
+  shouldComponentUpdate(nextProps) {
+    // if (this.props.tracking && !nextProps.tracking) {
+    //   const tracker = this.main.select("rect.trackZoom");
+    //   tracker.attr("opacity", 0);
+    // }
+    return this.props.selected !== nextProps.selected;
+  }
 
   componentDidUpdate = () => {
     this.renderChart();

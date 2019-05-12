@@ -6,6 +6,10 @@ import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
+import Vis from "./Vis";
+import { BarVis } from "./BarVis";
+import { LineVis } from "./LineVis";
+import { ScatterVis } from "./ScatterVis";
 
 const chartTypes = ["bars", "lines", "scatter"];
 
@@ -98,7 +102,7 @@ class Root extends React.Component {
     switch (this.state.chartType) {
       case "bars":
         return (
-          <Bars
+          <BarVis
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
@@ -108,7 +112,7 @@ class Root extends React.Component {
         );
       case "lines":
         return (
-          <Lines
+          <LineVis
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
@@ -118,10 +122,12 @@ class Root extends React.Component {
         );
       case "scatter":
         return (
-          <Scatter
+          <ScatterVis
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
+            color={this.state.color}
+            tracking={this.state.tracking}
           />
         );
     }
