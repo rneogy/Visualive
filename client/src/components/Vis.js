@@ -102,8 +102,6 @@ class Vis extends React.Component {
 
     this.zoom = d3
       .zoom()
-      .scaleExtent([1, 20])
-      .translateExtent([[0, 0], [w, h]])
       .on("zoom", this.zoomed);
 
     this.svg.call(this.zoom);
@@ -158,6 +156,9 @@ class Vis extends React.Component {
 
   zoomed = () => {
     this.chartType.zoomed();
+    if (this.props.following) {
+      this.props.unfollowUser(this.props.following);
+    }
   };
 
   componentDidUpdate = () => {
