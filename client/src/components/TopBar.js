@@ -11,7 +11,7 @@ class TopBar extends React.Component {
 
   callback = v => {
     if (!this.state.slidden) {
-      document.querySelector("#top-bar").style.top = 0;
+      document.querySelector("#top-bar").style["margin-top"] = 0;
       this.setState({ slidden: true });
     }
     this.props.cb(v);
