@@ -59,6 +59,10 @@ class Root extends React.Component {
     });
   }
 
+  setChartType = type => {
+    this.setState({chartType: type});
+  }
+
   followUser = id => {
     if (this.state.following) {
       this.socket.emit("unfollowUser", this.state.following);
@@ -104,6 +108,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "lines":
@@ -114,6 +120,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "scatter":
@@ -124,6 +132,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
     }
@@ -146,8 +156,8 @@ class Root extends React.Component {
         <div className="container-fluid">
           {this.state.chartOpen ? (
             <div className="row">
-              <div className="col-10">{this.renderChart()}</div>
-              <div className="col-2">
+              <div className="col-11">{this.renderChart()}</div>
+              <div className="col-1">
                 <UserPanel
                   users={this.state.connections}
                   followUser={this.followUser}
@@ -168,6 +178,8 @@ class Root extends React.Component {
               selected={this.state.selectedCountries}
               multi={this.isMultiSelect()}
               slidden={this.state.chartOpen}
+              chartType={this.state.chartType}
+              setChartType={this.setChartType}
             />
           </div>
         </div>

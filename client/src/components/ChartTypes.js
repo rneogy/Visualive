@@ -52,9 +52,10 @@ class ChartType {
 
   onRemoveBrush = () => {
     document.getElementsByClassName("overlay")[0].style.display = "none";
-    d3.selectAll("circle").classed("brush-selected", false);
+    d3.selectAll(".mark").attr("fill", this.barColor);
     this.brush.move(this.main, this.defaultBrushLocation);
     this.main.on(".brush", null);
+    this.extent = null;
   };
 
   // brushing
@@ -62,7 +63,7 @@ class ChartType {
     document.getElementsByClassName("overlay")[0].style.display = "none";
     this.main.on(".brush", null);
 
-    d3.selectAll("circle").classed("brush-selected", false);
+    d3.selectAll(".mark").attr("fill", this.barColor);
     this.brush.move(this.main, this.defaultBrushLocation);
     this.extent = null;
 
@@ -130,6 +131,8 @@ class ChartTypeXZoom extends ChartType {
       .attr("fill-opacity", 0)
       .attr("opacity", 0.8)
       .attr("display", "initial");
+
+    this.followed_color = d.color;
   };
 
   onSendTrackZoom = () => {
@@ -150,8 +153,16 @@ class ChartTypeXZoom extends ChartType {
     const brush_start = () => {
       const selection = d3.event.selection;
       if (selection) {
-        d3.selectAll(".mark").classed("brush-selected", d => {
-          return is_brushed(selection, this.t(d.year));
+        d3.selectAll(".mark").attr("fill", d => {
+          if (is_brushed(selection, this.t(d.year))) {
+            if (this.props.following) {
+              return this.followed_color;
+            } else {
+              return this.props.color;
+            }
+          } else {
+            return this.barColor;
+          }
         });
         this.extent = [
           this.t.invert(selection[0]), this.t.invert(selection[1])
@@ -198,6 +209,7 @@ export class Bars extends ChartTypeXZoom {
       .enter()
       .append("rect")
       .classed("bar", true)
+      .classed("mark", true)
       .attr("x", d => {
         return this.x(d.year);
       })
@@ -379,6 +391,7 @@ export class Lines extends ChartTypeXZoom {
       .enter()
       .append("path")
       .attr("class", "chart-line")
+      .classed("mark", true)
       .attr("id", (_, i) => "line-" + i)
       .attr("d", this.line)
       .attr("stroke", (_, i) => this.colors[i])
@@ -442,9 +455,9 @@ export class Lines extends ChartTypeXZoom {
     tt.classList.add("mytooltip");
     tt.id = "tt-" + i;
     tt.style.left = e.clientX + "px";
-    tt.style.top = e.clientY - 40 + "px";
+    tt.style.top = e.clientY + 20 + "px";
     tt.innerText = this.props.selected[i];
-    document.body.prepend(tt);
+    document.body.append(tt);
   };
 
   onMouseOutLine = (d, i) => {
@@ -504,6 +517,7 @@ export class Scatter extends ChartType {
       .enter()
       .append("circle")
       .classed("dot", true)
+      .classed("mark", true)
       .attr("r", 5)
       .attr("cx", d => {
         return this.x(d.year);
@@ -619,6 +633,8 @@ export class Scatter extends ChartType {
       .attr("fill-opacity", 0)
       .attr("opacity", 0.8)
       .attr("display", "initial");
+
+    this.followed_color = d.color;
   };
 
   onSendTrackZoom = () => {
@@ -694,13 +710,18 @@ export class Scatter extends ChartType {
 
     // function called when brush is started or moved, color doesn't work
     const brush_start = () => {
-      // const selection = document.getElementsByClassName("selection")[0]
-      // selection.style.color = "steelblue";
-
       const selection = d3.event.selection;
       if (selection) {
-        d3.selectAll("circle").classed("brush-selected", d => {
-          return is_brushed(selection, this.t(d.year), this.t2(d.income));
+        d3.selectAll("circle").attr("fill", d => {
+          if (is_brushed(selection, this.t(d.year), this.t2(d.income))) {
+            if (this.props.following) {
+              return this.followed_color;
+            } else {
+              return this.props.color;
+            }
+          } else {
+            return this.barColor;
+          }
         });
         this.extent = [
           [this.t.invert(selection[0][0]), this.t2.invert(selection[0][1])],
