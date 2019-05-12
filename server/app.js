@@ -5,14 +5,7 @@ const app = express();
 const http = require("http").Server(app);
 const io = require("socket.io")(http);
 const d3 = require("d3");
-// between 0 and 10
-let color_num = 0;
-
-// interpolate between 0.2 and 0.8
-const colors = () => {
-  color_num = num + (Math.random() * 2 + 6)
-  return d3.interpolateRainbow(color_num*0.06 + 0.2);
-}
+const colors = [...d3.schemeSet3.slice(0, 8), ...d3.schemeSet3.slice(9)];
 
 const publicPath = path.resolve(__dirname, "..", "client", "dist");
 
@@ -30,7 +23,10 @@ const State = {
 };
 
 io.on("connection", socket => {
-  const color = colors() //.pop(); // this breaks if there are more people online than there are colors
+  if (colors.length == 0) {
+    colors.push(...d3.schemeSet3.slice(0, 8), ...d3.schemeSet3.slice(9));
+  }
+  const color = colors.pop();
   console.log("User " + socket.id + " connected. Assigned color: " + color);
   const thisConnection = {
     id: socket.id,
@@ -116,9 +112,9 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     console.log("User " + socket.id + " disconnected.");
     State.connections = State.connections.filter(c => {
-      // if (c.id === socket.id) {
-      //   colors.push(c.color);
-      // }
+      if (c.id === socket.id) {
+        colors.push(c.color);
+      }
       return c.id !== socket.id;
     });
 
