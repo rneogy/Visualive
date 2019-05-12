@@ -131,6 +131,8 @@ class ChartTypeXZoom extends ChartType {
       .attr("fill-opacity", 0)
       .attr("opacity", 0.8)
       .attr("display", "initial");
+
+    this.followed_color = d.color;
   };
 
   onSendTrackZoom = () => {
@@ -153,7 +155,7 @@ class ChartTypeXZoom extends ChartType {
       if (selection) {
         d3.selectAll(".mark").attr("fill", d => {
           if (is_brushed(selection, this.t(d.year))) {
-            if (this.followed_color) {
+            if (this.props.following) {
               return this.followed_color;
             } else {
               return this.props.color;
@@ -631,6 +633,8 @@ export class Scatter extends ChartType {
       .attr("fill-opacity", 0)
       .attr("opacity", 0.8)
       .attr("display", "initial");
+
+    this.followed_color = d.color;
   };
 
   onSendTrackZoom = () => {
@@ -710,7 +714,7 @@ export class Scatter extends ChartType {
       if (selection) {
         d3.selectAll("circle").attr("fill", d => {
           if (is_brushed(selection, this.t(d.year), this.t2(d.income))) {
-            if (this.followed_color) {
+            if (this.props.following) {
               return this.followed_color;
             } else {
               return this.props.color;
