@@ -140,7 +140,7 @@ class Root extends React.Component {
       case "lines":
         return true;
       case "scatter":
-        return true;
+        return false;
     }
   };
 

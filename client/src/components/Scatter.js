@@ -12,6 +12,7 @@ class Scatter extends React.Component {
     this.data = this.props.data;
     this.colors = d3.schemePastel1;
     this.brush = d3.brush();
+    this.extent = null;
   }
 
   componentDidMount() {
@@ -40,6 +41,30 @@ class Scatter extends React.Component {
       d3.selectAll("circle").attr("cy", d => {
         return this.t2(d.income);
       });
+    });
+
+    this.socket.on("brush", d => {
+      const main = d3.select(".main");
+      if (!d) {
+        const disp = document.getElementsByClassName("overlay")[0];
+        console.log(disp)
+        if (disp) {
+          console.log(disp.style.display)
+        }
+        if (disp && disp.style.display != "none") {
+          d3.selectAll("circle").classed("brush-selected", false);
+          this.brush.move(main, [[0, 0], [0, 0]]);
+          main.on("brush", null);
+          return;
+        } else {
+          main.call(this.brush);
+          document.getElementsByClassName("overlay")[0].style.display = "initial";
+          d = [[0, 0], [0, 0]];
+        }
+      }
+      console.log("exit brush")
+      this.extent = d;
+      this.move_brush_to_extent();
     });
 
     document.addEventListener("keydown", e => {
@@ -204,7 +229,7 @@ class Scatter extends React.Component {
         .on("mouseout", this.onMouseOutCircle)
         .transition()
         .duration(transitionDuration)
-        .attr("opacity", 1);
+        .attr("opacity", 0.8);
 
       dots
         .transition()
@@ -229,10 +254,15 @@ class Scatter extends React.Component {
 
       // brushing
       const remove_brush = () => {
-        this.brush.move(main, [[0, 0], [0, 0]]);
         document.getElementsByClassName("overlay")[0].style.display = "none";
-        main.on(".brush", null);
-      };
+        main.on(".brush", null)
+
+        d3.selectAll("circle").classed("brush-selected", false);
+        this.brush.move(main, [[0, 0], [0, 0]]);
+        this.extent = null;
+        
+        this.socket.emit("brushServer", this.extent);
+      }
 
       const add_brush = () => {
         main.call(this.brush);
@@ -257,25 +287,47 @@ class Scatter extends React.Component {
       });
 
       // move lets you brush programmatically
-      const move_brush = (x1, x2, y1, y2) => {
-        this.brush.move(main, [
-          [this.x(x1), this.y(y1)],
-          [this.x(x2), this.y(y2)]
-        ]);
-      };
+      const move_brush = (x1, y1, x2, y2) => {
+        this.brush.move(main, [[this.t(x1), this.t2(y1)], [this.t(x2), this.t2(y2)]]);
+      }
 
+      const is_brushed = (brush_coords, cx, cy) => {
+        var x0 = brush_coords[0][0],
+            x1 = brush_coords[1][0],
+            y0 = brush_coords[0][1],
+            y1 = brush_coords[1][1];
+        var ret = x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;    // This return TRUE or FALSE depending on if the points is in the selected area
+        return ret;
+      }
+      
       // function called when brush is started or moved, color doesn't work
-      const brush_start = function() {
-        const selection = document.getElementsByClassName("selection")[0];
-        // console.log(selection);
-        selection.style.color = "steelblue";
+      const brush_start = () => {
+        // const selection = document.getElementsByClassName("selection")[0]
+        // selection.style.color = "steelblue";
 
-        // console.log(d3.event.selection);
-      };
+        var selection = d3.event.selection;
+        if (selection) {
+          d3.selectAll("circle").classed("brush-selected", (d) => { 
+            return is_brushed(selection, this.t(d.year), this.t2(d.income))
+          })
+          this.extent = [[this.t.invert(selection[0][0]), this.t2.invert(selection[0][1])],
+                          [this.t.invert(selection[1][0]), this.t2.invert(selection[1][1])]]
+        }
+        
+        this.socket.emit("brushServer", this.extent);
+      }
       this.brush.on("start brush", brush_start);
     };
 
     setTimeout(this.renderChart, 100);
+  }
+
+  move_brush_to_extent = () => {
+    const main = d3.select(".main");
+    this.brush.move(main, [[this.t(this.extent[0][0]),
+                            this.t2(this.extent[0][1])],
+                            [this.t(this.extent[1][0]),
+                            this.t2(this.extent[1][1])]]);
   }
 
   zoomed = () => {
@@ -289,10 +341,16 @@ class Scatter extends React.Component {
     });
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
     d3.select("#yAxis").call(this.yAxis.scale(this.t2));
+    
     this.socket.emit("changeZoomServer", {
       x: this.t.domain(),
       y: this.t2.domain()
     });
+    
+    if (this.extent) {
+      this.move_brush_to_extent();
+      this.socket.emit("brushServer", this.extent);
+    }
   };
 
   shouldComponentUpdate(nextProps) {

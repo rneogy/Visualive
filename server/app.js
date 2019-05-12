@@ -72,6 +72,15 @@ io.on("connection", socket => {
     socket.to(socket.id + "-trackers").emit("trackZoom", d);
   });
 
+  socket.on("changeZoomServerScatter", d => {
+    socket.to(socket.id + "-followers").emit("changeZoomScatter", d);
+    socket.to(socket.id + "-trackers").emit("trackZoomScatter", d);
+  });
+
+  socket.on("brushServer", i => {
+    socket.to(socket.id + "-followers").emit("brush", i);
+  });
+
   // Tracking logic
   socket.on("trackUser", id => {
     console.log(socket.id + " tracking " + id);
