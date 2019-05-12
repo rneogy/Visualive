@@ -34,7 +34,6 @@ class TopBar extends React.Component {
   }
 
   render() {
-    console.log(this.props.chartType);
     return (
       <div id="top-bar" className="container-fluid">
         <div className="row">
