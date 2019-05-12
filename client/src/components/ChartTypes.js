@@ -445,9 +445,9 @@ export class Lines extends ChartTypeXZoom {
     tt.classList.add("mytooltip");
     tt.id = "tt-" + i;
     tt.style.left = e.clientX + "px";
-    tt.style.top = e.clientY - 40 + "px";
+    tt.style.top = e.clientY + 20 + "px";
     tt.innerText = this.props.selected[i];
-    document.body.prepend(tt);
+    document.body.append(tt);
   };
 
   onMouseOutLine = (d, i) => {

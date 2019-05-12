@@ -89,7 +89,7 @@ class Vis extends React.Component {
     this.x = d3
       .scaleLinear()
       .domain([1800, 2040])
-      .range([0.05 * w, 0.95 * w]);
+      .range([0.05 * w, 0.97 * w]);
 
     this.xAxis = d3
       .axisBottom()
@@ -114,7 +114,7 @@ class Vis extends React.Component {
       .append("rect")
       .attr("x", 0.05 * w)
       .attr("y", 0.05 * h)
-      .attr("width", 0.9 * w)
+      .attr("width", 0.92 * w)
       .attr("height", 0.9 * h);
 
     this.main = this.svg
