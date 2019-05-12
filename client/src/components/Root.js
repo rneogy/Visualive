@@ -1,12 +1,8 @@
 import React from "react";
-import Lines from "./Lines";
-import Bars from "./Bars";
-import Scatter from "./Scatter";
 import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
-import Vis from "./Vis";
 import { BarVis } from "./BarVis";
 import { LineVis } from "./LineVis";
 import { ScatterVis } from "./ScatterVis";

@@ -70,7 +70,8 @@ class ChartTypeXZoom extends ChartType {
       .attr("stroke", d.color)
       .attr("stroke-width", 5)
       .attr("fill-opacity", 0)
-      .attr("opacity", 0.8);
+      .attr("opacity", 0.8)
+      .attr("display", "initial");
   };
 
   onSendTrackZoom = () => {
@@ -330,11 +331,11 @@ export class Lines extends ChartTypeXZoom {
     this.t.domain(d.z);
     d3.select("#xAxis")
       .transition()
-      .duration(transitionDuration)
+      .duration(this.transitionDuration)
       .call(this.xAxis);
     d3.selectAll(".chart-line")
       .transition()
-      .duration(transitionDuration)
+      .duration(this.transitionDuration)
       .attr("d", this.line);
   };
 
@@ -461,6 +462,14 @@ export class Scatter extends ChartType {
       return this.t2(d.income);
     });
   };
+
+  onChangeZoomSmooth = d => {};
+
+  onSendZoom = () => {};
+
+  onTrackZoom = d => {};
+
+  onSendTrackZoom = () => {};
 
   onMouseOverCircle = (d, i) => {
     d3.select("#c-" + i)
