@@ -104,6 +104,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "lines":
@@ -114,6 +116,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "scatter":
@@ -124,6 +128,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
     }
