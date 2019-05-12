@@ -11,6 +11,7 @@ class Vis extends React.Component {
     this.data = this.props.data;
     this.barColor = barColor;
     this.transitionDuration = transitionDuration;
+    this.extent = null;
   }
 
   componentDidMount() {
@@ -45,9 +46,19 @@ class Vis extends React.Component {
       this.chartType.onTrackZoom(d);
     });
 
-    document.addEventListener("keydown", e => {
-      this.chartType.keydownEventHandler(e);
+    document.addEventListener("keydown", this.keydownEventHandler);
+
+    this.socket.on("changeBrush", d => {
+      this.chartType.onChangeBrush(d);
     });
+
+    this.socket.on("removeBrush", () => {
+      this.chartType.onRemoveBrush();
+    });
+  }
+
+  keydownEventHandler = (e) => {
+    this.chartType.keydownEventHandler(e);
   }
 
   loadChart() {
@@ -174,6 +185,9 @@ class Vis extends React.Component {
     this.socket.off("sendZoom");
     this.socket.off("sendTrackZoom");
     this.socket.off("trackZoom");
+    this.socket.off("changeBrush");
+    this.socket.off("removeBrush");
+    document.removeEventListener("keydown", this.keydownEventHandler);
   }
 
   render() {
