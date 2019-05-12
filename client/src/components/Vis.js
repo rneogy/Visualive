@@ -1,6 +1,5 @@
 import React from "react";
 import * as d3 from "d3";
-import { Bars, Lines } from "./ChartTypes";
 
 const barColor = "#c5d2e8";
 const transitionDuration = 1000;
@@ -12,6 +11,7 @@ class Vis extends React.Component {
     this.data = this.props.data;
     this.barColor = barColor;
     this.transitionDuration = transitionDuration;
+    this.extent = null;
   }
 
   componentDidMount() {
@@ -46,9 +46,19 @@ class Vis extends React.Component {
       this.chartType.onTrackZoom(d);
     });
 
-    document.addEventListener("keydown", e => {
-      this.chartType.keydownEventHandler(e);
+    document.addEventListener("keydown", this.keydownEventHandler);
+
+    this.socket.on("changeBrush", d => {
+      this.chartType.onChangeBrush(d);
     });
+
+    this.socket.on("removeBrush", () => {
+      this.chartType.onRemoveBrush();
+    });
+  }
+
+  keydownEventHandler = (e) => {
+    this.chartType.keydownEventHandler(e);
   }
 
   loadChart() {
@@ -92,8 +102,6 @@ class Vis extends React.Component {
 
     this.zoom = d3
       .zoom()
-      .scaleExtent([1, 20])
-      .translateExtent([[0, 0], [w, 0]])
       .on("zoom", this.zoomed);
 
     this.svg.call(this.zoom);
@@ -148,6 +156,9 @@ class Vis extends React.Component {
 
   zoomed = () => {
     this.chartType.zoomed();
+    if (this.props.following) {
+      this.props.unfollowUser(this.props.following);
+    }
   };
 
   componentDidUpdate = () => {
@@ -158,13 +169,26 @@ class Vis extends React.Component {
   shouldComponentUpdate(nextProps) {
     if (this.props.tracking && !nextProps.tracking) {
       const tracker = this.main.select("rect.trackZoom");
-      tracker.attr("opacity", 0);
+      tracker.attr("display", "none");
     }
     this.chartType.updateProps(nextProps);
     return (
       this.props.selected !== nextProps.selected ||
       this.props.chartType !== nextProps.chartType
     );
+  }
+
+  componentWillUnmount() {
+    this.socket.off("highlight");
+    this.socket.off("unhighlight");
+    this.socket.off("changeZoom");
+    this.socket.off("changeZoomSmooth");
+    this.socket.off("sendZoom");
+    this.socket.off("sendTrackZoom");
+    this.socket.off("trackZoom");
+    this.socket.off("changeBrush");
+    this.socket.off("removeBrush");
+    document.removeEventListener("keydown", this.keydownEventHandler);
   }
 
   render() {

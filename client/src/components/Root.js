@@ -1,12 +1,8 @@
 import React from "react";
-import Lines from "./Lines";
-import Bars from "./Bars";
-import Scatter from "./Scatter";
 import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
-import Vis from "./Vis";
 import { BarVis } from "./BarVis";
 import { LineVis } from "./LineVis";
 import { ScatterVis } from "./ScatterVis";
@@ -108,6 +104,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "lines":
@@ -118,6 +116,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "scatter":
@@ -128,6 +128,8 @@ class Root extends React.Component {
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
     }

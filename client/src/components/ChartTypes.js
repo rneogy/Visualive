@@ -29,11 +29,51 @@ class ChartType {
     this.dx = w / (2040 - 1800);
     this.barColor = barColor;
     this.transitionDuration = transitionDuration;
+    this.extent = null;
+    this.defaultBrushLocation = [[0, 0], [0, 0]];
   }
 
   updateProps(props) {
     this.props = props;
   }
+
+  onChangeBrush = d => {
+    this.extent = d;
+    if (!this.extent) {
+      return;
+    }
+    const brush_overlay = document.getElementsByClassName("overlay")[0];
+    if (brush_overlay) {
+      document.getElementsByClassName("overlay")[0].style.display = "initial";
+    }
+    this.main.call(this.brush);
+    this.moveBrushToExtent();
+  };
+
+  onRemoveBrush = () => {
+    document.getElementsByClassName("overlay")[0].style.display = "none";
+    d3.selectAll(".mark").classed("brush-selected", false);
+    this.brush.move(this.main, this.defaultBrushLocation);
+    this.main.on(".brush", null);
+    this.extent = null;
+  };
+
+  // brushing
+  remove_brush = () => {
+    document.getElementsByClassName("overlay")[0].style.display = "none";
+    this.main.on(".brush", null);
+
+    d3.selectAll(".mark").classed("brush-selected", false);
+    this.brush.move(this.main, this.defaultBrushLocation);
+    this.extent = null;
+
+    this.socket.emit("removeBrushServer", this.extent);
+  };
+
+  add_brush = () => {
+    this.main.call(this.brush);
+    document.getElementsByClassName("overlay")[0].style.display = "initial";
+  };
 
   keydownEventHandler = e => {
     if (e.keyCode === 27) {
@@ -42,15 +82,34 @@ class ChartType {
         .transition()
         .duration(this.transitionDuration)
         .call(this.zoom.transform, d3.zoomIdentity.scale(1));
+    } else if (e.keyCode === 16) {
+      const brush_overlay = document.getElementsByClassName("overlay")[0];
+      if (!brush_overlay) {
+        this.main.call(this.brush);
+      } else {
+        const displayed = brush_overlay.style.display;
+        if (displayed == "none") {
+          this.add_brush();
+        } else {
+          this.remove_brush();
+        }
+      }
     }
   };
 }
 
 class ChartTypeXZoom extends ChartType {
+  constructor(...args) {
+    super(...args);
+    this.brush = d3.brushX();
+    this.defaultBrushLocation = [0, 0];
+  }
+
   onSendZoom = () => {
     this.socket.emit("changeZoomSmoothServer", {
       z: this.t.domain(),
-      color: this.props.color
+      color: this.props.color,
+      extent: this.extent
     });
   };
 
@@ -70,7 +129,8 @@ class ChartTypeXZoom extends ChartType {
       .attr("stroke", d.color)
       .attr("stroke-width", 5)
       .attr("fill-opacity", 0)
-      .attr("opacity", 0.8);
+      .attr("opacity", 0.8)
+      .attr("display", "initial");
   };
 
   onSendTrackZoom = () => {
@@ -78,6 +138,37 @@ class ChartTypeXZoom extends ChartType {
       z: this.t.domain(),
       color: this.props.color
     });
+  };
+
+  brushLogic = () => {
+    const is_brushed = (brush_coords, cx) => {
+      const x0 = brush_coords[0],
+        x1 = brush_coords[1];
+      return x0 <= cx && cx <= x1;
+    };
+
+    // function called when brush is started or moved, color doesn't work
+    const brush_start = () => {
+      const selection = d3.event.selection;
+      if (selection) {
+        d3.selectAll(".mark").classed("brush-selected", d => {
+          return is_brushed(selection, this.t(d.year));
+        });
+        this.extent = [
+          this.t.invert(selection[0]), this.t.invert(selection[1])
+        ];
+      }
+
+      this.socket.emit("changeBrushServer", this.extent);
+    };
+    this.brush.on("start brush", brush_start);
+  };
+
+  moveBrushToExtent = () => {
+    this.brush.move(this.main, [
+      this.t(this.extent[0]),
+      this.t(this.extent[1])
+    ]);
   };
 }
 
@@ -99,7 +190,6 @@ export class Bars extends ChartTypeXZoom {
   };
 
   render = countryData => {
-    console.log("bars!");
     this.t = this.x;
     this.xAxis.scale(this.t);
 
@@ -109,6 +199,7 @@ export class Bars extends ChartTypeXZoom {
       .enter()
       .append("rect")
       .classed("bar", true)
+      .classed("mark", true)
       .attr("x", d => {
         return this.x(d.year);
       })
@@ -188,6 +279,7 @@ export class Bars extends ChartTypeXZoom {
         return this.t(d.year);
       })
       .attr("width", this.dx / 2);
+    this.onChangeBrush(d.extent);
   };
 
   onMouseOverBar = (d, i) => {
@@ -235,6 +327,11 @@ export class Bars extends ChartTypeXZoom {
       z: this.t.domain(),
       color: this.props.color
     });
+
+    if (this.extent) {
+      this.moveBrushToExtent();
+      this.socket.emit("changeBrushServer", this.extent);
+    }
   };
 }
 
@@ -269,7 +366,6 @@ export class Lines extends ChartTypeXZoom {
   };
 
   render = countryData => {
-    console.log("lines!");
 
     this.t = this.x;
     this.xAxis.scale(this.t);
@@ -285,6 +381,7 @@ export class Lines extends ChartTypeXZoom {
       .enter()
       .append("path")
       .attr("class", "chart-line")
+      .classed("mark", true)
       .attr("id", (_, i) => "line-" + i)
       .attr("d", this.line)
       .attr("stroke", (_, i) => this.colors[i])
@@ -330,12 +427,13 @@ export class Lines extends ChartTypeXZoom {
     this.t.domain(d.z);
     d3.select("#xAxis")
       .transition()
-      .duration(transitionDuration)
+      .duration(this.transitionDuration)
       .call(this.xAxis);
     d3.selectAll(".chart-line")
       .transition()
-      .duration(transitionDuration)
+      .duration(this.transitionDuration)
       .attr("d", this.line);
+    this.onChangeBrush(d.extent);
   };
 
   onMouseOverLine = (d, i) => {
@@ -366,10 +464,20 @@ export class Lines extends ChartTypeXZoom {
       z: this.t.domain(),
       color: this.props.color
     });
+
+    if (this.extent) {
+      this.moveBrushToExtent();
+      this.socket.emit("changeBrushServer", this.extent);
+    }
   };
 }
 
 export class Scatter extends ChartType {
+  constructor(...args) {
+    super(...args);
+    this.brush = d3.brush();
+  }
+
   wrangleData = data => {
     const rawCountryData = data.find(c => c.country === this.props.selected[0]);
     if (!rawCountryData) {
@@ -399,6 +507,7 @@ export class Scatter extends ChartType {
       .enter()
       .append("circle")
       .classed("dot", true)
+      .classed("mark", true)
       .attr("r", 5)
       .attr("cx", d => {
         return this.x(d.year);
@@ -437,23 +546,25 @@ export class Scatter extends ChartType {
       .remove();
   };
 
-  onHighlight = i => {
-    d3.select("#b-" + i)
-      .attr("fill", "white")
-      .classed("selected", true);
+  onHighlight = d => {
+    d3.select("#c-" + d.i)
+      .attr("fill", d.color)
+      .classed("selected", true)
+      .attr("r", 10);
   };
 
   onUnhighlight = i => {
-    d3.select("#b-" + i)
+    d3.select("#c-" + i)
       .attr("fill", this.barColor)
-      .classed("selected", false);
+      .classed("selected", false)
+      .attr("r", 5);
   };
 
   onChangeZoom = d => {
     this.t.domain(d.x);
+    this.t2.domain(d.y);
     d3.select("#xAxis").call(this.xAxis);
     d3.select("#yAxis").call(this.yAxis);
-    this.t2.domain(d.y);
     d3.selectAll("circle").attr("cx", d => {
       return this.t(d.year);
     });
@@ -462,11 +573,71 @@ export class Scatter extends ChartType {
     });
   };
 
+  onChangeZoomSmooth = d => {
+    this.t.domain(d.x);
+    this.t2.domain(d.y);
+    this.onChangeBrush(d.extent);
+    d3.select("#xAxis")
+      .transition()
+      .duration(this.transitionDuration)
+      .call(this.xAxis);
+    d3.select("#yAxis")
+      .transition()
+      .duration(this.transitionDuration)
+      .call(this.yAxis);
+    d3.selectAll("circle")
+      .transition()
+      .duration(this.transitionDuration)
+      .attr("cx", d => {
+        return this.t(d.year);
+      })
+      .attr("cy", d => {
+        return this.t2(d.income);
+      });
+  };
+
+  onSendZoom = () => {
+    this.socket.emit("changeZoomSmoothServer", {
+      x: this.t.domain(),
+      y: this.t2.domain(),
+      color: this.props.color,
+      extent: this.extent
+    });
+  };
+
+  onTrackZoom = d => {
+    if (!this.props.tracking) {
+      return;
+    }
+    let tracker = this.main.select("rect.trackZoom");
+    if (!tracker.node()) {
+      tracker = this.main.append("rect").classed("trackZoom", true);
+    }
+    tracker
+      .attr("x", this.t(d.x[0]))
+      .attr("y", this.t2(d.y[0]) - (this.t2(d.y[0]) - this.t2(d.y[1])))
+      .attr("width", this.t(d.x[1]) - this.t(d.x[0]))
+      .attr("height", this.t2(d.y[0]) - this.t2(d.y[1]))
+      .attr("stroke", d.color)
+      .attr("stroke-width", 5)
+      .attr("fill-opacity", 0)
+      .attr("opacity", 0.8)
+      .attr("display", "initial");
+  };
+
+  onSendTrackZoom = () => {
+    this.socket.emit("trackZoomServer", {
+      x: this.t.domain(),
+      y: this.t2.domain(),
+      color: this.props.color
+    });
+  };
+
   onMouseOverCircle = (d, i) => {
     d3.select("#c-" + i)
       .attr("fill", this.props.color)
       .attr("stroke", this.props.color)
-      .attr("stroke-width", this.dx / 2);
+      .attr("r", 10);
 
     // Specify where to put label of text
     d3.select("svg")
@@ -479,13 +650,14 @@ export class Scatter extends ChartType {
       .attr("font-size", "20px")
       .text(d.year + ": $" + d.income);
 
-    this.socket.emit("highlightServer", i);
+    this.socket.emit("highlightServer", { i: i, color: this.props.color });
   };
 
   onMouseOutCircle = (d, i) => {
     d3.select("#c-" + i)
       .attr("fill", this.barColor)
-      .attr("stroke", "none");
+      .attr("stroke", "none")
+      .attr("r", 5);
 
     d3.select("#t-" + i).remove(); // Remove text location
 
@@ -505,7 +677,50 @@ export class Scatter extends ChartType {
     d3.select("#yAxis").call(this.yAxis.scale(this.t2));
     this.socket.emit("changeZoomServer", {
       x: this.t.domain(),
-      y: this.t2.domain()
+      y: this.t2.domain(),
+      color: this.props.color
     });
+
+    if (this.extent) {
+      this.moveBrushToExtent();
+      this.socket.emit("changeBrushServer", this.extent);
+    }
+  };
+
+  brushLogic = () => {
+    const is_brushed = (brush_coords, cx, cy) => {
+      const x0 = brush_coords[0][0],
+        x1 = brush_coords[1][0],
+        y0 = brush_coords[0][1],
+        y1 = brush_coords[1][1];
+      return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
+    };
+
+    // function called when brush is started or moved, color doesn't work
+    const brush_start = () => {
+      // const selection = document.getElementsByClassName("selection")[0]
+      // selection.style.color = "steelblue";
+
+      const selection = d3.event.selection;
+      if (selection) {
+        d3.selectAll("circle").classed("brush-selected", d => {
+          return is_brushed(selection, this.t(d.year), this.t2(d.income));
+        });
+        this.extent = [
+          [this.t.invert(selection[0][0]), this.t2.invert(selection[0][1])],
+          [this.t.invert(selection[1][0]), this.t2.invert(selection[1][1])]
+        ];
+      }
+
+      this.socket.emit("changeBrushServer", this.extent);
+    };
+    this.brush.on("start brush", brush_start);
+  };
+
+  moveBrushToExtent = () => {
+    this.brush.move(this.main, [
+      [this.t(this.extent[0][0]), this.t2(this.extent[0][1])],
+      [this.t(this.extent[1][0]), this.t2(this.extent[1][1])]
+    ]);
   };
 }

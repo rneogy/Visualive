@@ -22,5 +22,6 @@ export class BarVis extends Vis {
       this.barColor,
       this.transitionDuration
     );
+    this.chartType.brushLogic();
   }
 }
