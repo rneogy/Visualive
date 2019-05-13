@@ -5,12 +5,14 @@ const barColor = "#c5d2e8";
 const highlightColor = "#69efed";
 const transitionDuration = 1000;
 
-class Vis extends React.Component {
+class Scatter extends React.Component {
   constructor(props) {
     super(props);
     this.socket = this.props.socket;
     this.data = this.props.data;
     this.colors = d3.schemePastel1;
+    this.brush = d3.brush();
+    this.extent = null;
   }
 
   componentDidMount() {
@@ -29,10 +31,35 @@ class Vis extends React.Component {
     });
 
     this.socket.on("changeZoom", d => {
-      this.t.domain(d);
-      d3.selectAll("rect.bar").attr("x", d => {
+      this.t.domain(d.x);
+      d3.select("#xAxis").call(this.xAxis);
+      d3.select("#yAxis").call(this.yAxis);
+      this.t2.domain(d.y);
+      d3.selectAll("circle").attr("cx", d => {
         return this.t(d.year);
       });
+      d3.selectAll("circle").attr("cy", d => {
+        return this.t2(d.income);
+      });
+    });
+
+    this.socket.on("changeBrush", d => {
+      this.extent = d;
+      const brush_overlay = document.getElementsByClassName("overlay")[0]
+      const main = d3.select(".main");
+      if (!brush_overlay) {
+        main.call(this.brush);
+      } else {
+        document.getElementsByClassName("overlay")[0].style.display = "initial";
+        this.move_brush_to_extent();
+      }
+    });
+
+    this.socket.on("removeBrush", d => {
+      const main = d3.select(".main");
+      d3.selectAll("circle").classed("brush-selected", false);
+      this.brush.move(main, [[0, 0], [0, 0]]);
+      main.on("brush", null);
     });
 
     document.addEventListener("keydown", e => {
@@ -57,7 +84,7 @@ class Vis extends React.Component {
       .append("text")
       .attr("id", "t-" + i)
       .attr("x", this.t(d.year))
-      .attr("y", this.y(d.income) - 20)
+      .attr("y", this.t2(d.income) - 20)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
       .attr("font-size", "20px")
@@ -116,7 +143,7 @@ class Vis extends React.Component {
     this.zoom = d3
       .zoom()
       .scaleExtent([1, 20])
-      .translateExtent([[0, 0], [w, 0]])
+      .translateExtent([[0, 0], [w, h]])
       .on("zoom", this.zoomed);
 
     this.svg.call(this.zoom);
@@ -137,13 +164,10 @@ class Vis extends React.Component {
       .attr("class", "main")
       .attr("clip-path", "url(#clip)");
 
-    // brushing
-    let brush = d3.brush()
-    
     this.line = d3
       .line()
       .x(d => this.t(d.year))
-      .y(d => this.y(d.income));
+      .y(d => this.t2(d.income));
 
     this.renderChart = () => {
       console.log("rendering " + this.props.selected);
@@ -159,7 +183,6 @@ class Vis extends React.Component {
         }
         return res;
       }, []);
-      // console.log(countryData);
 
       const maxIncome = d3.max(countryData, c => c.income);
 
@@ -168,7 +191,8 @@ class Vis extends React.Component {
 
       this.y.domain([0, maxIncome]).nice();
 
-      this.yAxis.scale(this.y);
+      this.t2 = this.y;
+      this.yAxis.scale(this.t2);
 
       d3.select("#xAxis")
         .transition()
@@ -200,7 +224,7 @@ class Vis extends React.Component {
         .on("mouseout", this.onMouseOutCircle)
         .transition()
         .duration(transitionDuration)
-        .attr("opacity", 1);
+        .attr("opacity", 0.8);
 
       dots
         .transition()
@@ -222,49 +246,83 @@ class Vis extends React.Component {
         .duration(500)
         .attr("opacity", 0)
         .remove();
-      
-      main.call(brush);
 
-      // move lets you brush programmatically
-      brush.move(main, [[this.x(1900), this.y(10000)], [this.x(1950), this.y(5000)]]);
-      
-      const brush_overlay = document.getElementsByClassName("overlay")[0]
-
-      // function called when brush is started or moved, color doesn't work
-      const brush_start = function() {
-        const selection = document.getElementsByClassName("selection")[0]
-        // console.log(selection);
-        selection.style.color = "steelblue";
-
-        // console.log(d3.event.selection);
-      }
-      brush.on("start brush", brush_start);
-
-      const remove_brush = function() {
-        brush.move(main, [[0, 0], [0, 0]]);
+      // brushing
+      const remove_brush = () => {
         document.getElementsByClassName("overlay")[0].style.display = "none";
         main.on(".brush", null)
+
+        d3.selectAll("circle").classed("brush-selected", false);
+        this.brush.move(main, [[0, 0], [0, 0]]);
+        this.extent = null;
+        
+        this.socket.emit("removeBrushServer", this.extent);
       }
 
-      const add_brush = function() {
-        main.call(brush);
+      const add_brush = () => {
+        main.call(this.brush);
         document.getElementsByClassName("overlay")[0].style.display = "initial";
-      }
+      };
 
       // add or remove brush
       document.addEventListener("keydown", e => {
         if (e.keyCode === 16) {
-          const displayed = brush_overlay.style.display;
-          if (displayed == "none") {
-            add_brush();
+          const brush_overlay = document.getElementsByClassName("overlay")[0];
+          if (!brush_overlay) {
+            main.call(this.brush);
           } else {
-            remove_brush();
+            const displayed = brush_overlay.style.display;
+            if (displayed == "none") {
+              add_brush();
+            } else {
+              remove_brush();
+            }
           }
         }
       });
+
+      // move lets you brush programmatically
+      const move_brush = (x1, y1, x2, y2) => {
+        this.brush.move(main, [[this.t(x1), this.t2(y1)], [this.t(x2), this.t2(y2)]]);
+      }
+
+      const is_brushed = (brush_coords, cx, cy) => {
+        var x0 = brush_coords[0][0],
+            x1 = brush_coords[1][0],
+            y0 = brush_coords[0][1],
+            y1 = brush_coords[1][1];
+        var ret = x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;    // This return TRUE or FALSE depending on if the points is in the selected area
+        return ret;
+      }
+      
+      // function called when brush is started or moved, color doesn't work
+      const brush_start = () => {
+        // const selection = document.getElementsByClassName("selection")[0]
+        // selection.style.color = "steelblue";
+
+        var selection = d3.event.selection;
+        if (selection) {
+          d3.selectAll("circle").classed("brush-selected", (d) => { 
+            return is_brushed(selection, this.t(d.year), this.t2(d.income))
+          })
+          this.extent = [[this.t.invert(selection[0][0]), this.t2.invert(selection[0][1])],
+                          [this.t.invert(selection[1][0]), this.t2.invert(selection[1][1])]]
+        }
+        
+        this.socket.emit("changeBrushServer", this.extent);
+      }
+      this.brush.on("start brush", brush_start);
     };
 
     setTimeout(this.renderChart, 100);
+  }
+
+  move_brush_to_extent = () => {
+    const main = d3.select(".main");
+    this.brush.move(main, [[this.t(this.extent[0][0]),
+                            this.t2(this.extent[0][1])],
+                            [this.t(this.extent[1][0]),
+                            this.t2(this.extent[1][1])]]);
   }
 
   zoomed = () => {
@@ -272,9 +330,31 @@ class Vis extends React.Component {
     d3.selectAll("circle").attr("cx", d => {
       return this.t(d.year);
     });
+    this.t2 = d3.event.transform.rescaleY(this.y);
+    d3.selectAll("circle").attr("cy", d => {
+      return this.t2(d.income);
+    });
     d3.select("#xAxis").call(this.xAxis.scale(this.t));
-    this.socket.emit("changeZoomServer", this.t.domain());
+    d3.select("#yAxis").call(this.yAxis.scale(this.t2));
+    
+    this.socket.emit("changeZoomServer", {
+      x: this.t.domain(),
+      y: this.t2.domain()
+    });
+    
+    if (this.extent) {
+      this.move_brush_to_extent();
+      this.socket.emit("changeBrushServer", this.extent);
+    }
   };
+
+  shouldComponentUpdate(nextProps) {
+    // if (this.props.tracking && !nextProps.tracking) {
+    //   const tracker = this.main.select("rect.trackZoom");
+    //   tracker.attr("opacity", 0);
+    // }
+    return this.props.selected !== nextProps.selected;
+  }
 
   componentDidUpdate = () => {
     this.renderChart();
@@ -285,4 +365,4 @@ class Vis extends React.Component {
   }
 }
 
-export default Vis;
+export default Scatter;

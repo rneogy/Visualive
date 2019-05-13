@@ -28,8 +28,7 @@ body {
 
 #vis {
   width: 100%;
-  height: 90vh;
-  margin-top: 10vh;
+  height: 85vh;
 }
 
 .link {
@@ -48,13 +47,23 @@ body {
 }
 
 #top-bar {
-  position: fixed;
-  top: 40vh;
-  left: 0;
+  margin-top:40vh;
   width: 100vw;
   padding-top: 5px;
   text-align: center;
   transition: 1000ms;
+  height: 15vh;
+}
+
+#top-row {
+  height: 100%;
+}
+
+div.center-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .main-title {
@@ -62,9 +71,21 @@ body {
   color: #c5d2e8;
 }
 
+h2.main-title {
+  font-size: 2vw;
+}
+
+h6.main-title {
+  font-size: 2vh;
+}
+
+.btn {
+  font-size: 1.8vh;
+}
+
 #country-dropdown {
-  width: 30%;
-  margin: 30px auto;
+  width: 60%;
+  margin: auto;
 }
 
 .chart-line {
@@ -81,13 +102,12 @@ div.mytooltip {
   text-align: middle;
   padding: 3px 5px;
   border-radius: 5px;
-  background-color: rgba(43, 43, 43, 0.726);
+  background-color: rgba(43, 43, 43, 0.774);
   color: #c5d2e8;
 }
 
 #user-panel {
   text-align: center;
-  padding-top: 20vh;
   color: #c5d2e8;
   animation: fadein 2s;
 }
@@ -137,4 +157,23 @@ div.mytooltip {
   100% {
     transform: translateX(3px);
   }
+}
+
+#instructions {
+  border: #c5d2e8 1px solid;
+  border-radius: 5px;
+  opacity: 0;
+  animation: fadein 2s 2s forwards;
+  padding: 0 10px;
+}
+
+#controls {
+  opacity: 0;
+  animation: fadein 2s 2s forwards;
+}
+
+#root-container {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }

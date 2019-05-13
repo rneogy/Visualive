@@ -34,6 +34,7 @@ class Lines extends React.Component {
     });
 
     this.socket.on("sendZoom", () => {
+      console.log("sending zooooom to followers!");
       this.socket.emit("changeZoomSmoothServer", {
         z: this.t.domain(),
         color: this.props.color

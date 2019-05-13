@@ -5,7 +5,7 @@ const app = express();
 const http = require("http").Server(app);
 const io = require("socket.io")(http);
 const d3 = require("d3");
-const colors = d3.schemeSet3;
+const colors = [...d3.schemeSet3.slice(0, 8), ...d3.schemeSet3.slice(9)];
 
 const publicPath = path.resolve(__dirname, "..", "client", "dist");
 
@@ -23,7 +23,10 @@ const State = {
 };
 
 io.on("connection", socket => {
-  const color = colors.pop(); // this breaks if there are more people online than there are colors
+  if (colors.length == 0) {
+    colors.push(...d3.schemeSet3.slice(0, 8), ...d3.schemeSet3.slice(9));
+  }
+  const color = colors.pop();
   console.log("User " + socket.id + " connected. Assigned color: " + color);
   const thisConnection = {
     id: socket.id,
@@ -70,6 +73,19 @@ io.on("connection", socket => {
   socket.on("changeZoomServer", d => {
     socket.to(socket.id + "-followers").emit("changeZoom", d);
     socket.to(socket.id + "-trackers").emit("trackZoom", d);
+  });
+
+  socket.on("changeZoomServerScatter", d => {
+    socket.to(socket.id + "-followers").emit("changeZoomScatter", d);
+    socket.to(socket.id + "-trackers").emit("trackZoomScatter", d);
+  });
+
+  socket.on("changeBrushServer", i => {
+    socket.to(socket.id + "-followers").emit("changeBrush", i);
+  });
+  
+  socket.on("removeBrushServer", i => {
+    socket.to(socket.id + "-followers").emit("removeBrush", i);
   });
 
   // Tracking logic

@@ -1,11 +1,11 @@
 import React from "react";
-import Lines from "./Lines";
-import Bars from "./Bars";
-import Scatter from "./Scatter";
 import TopBar from "./TopBar";
 import UserPanel from "./UserPanel";
 import * as d3 from "d3";
 import io from "socket.io-client";
+import { BarVis } from "./BarVis";
+import { LineVis } from "./LineVis";
+import { ScatterVis } from "./ScatterVis";
 
 const chartTypes = ["bars", "lines", "scatter"];
 
@@ -59,6 +59,11 @@ class Root extends React.Component {
     });
   }
 
+  setChartType = type => {
+    this.setState({ chartType: type });
+    this.socket.emit("changeChartServer", type);
+  };
+
   followUser = id => {
     if (this.state.following) {
       this.socket.emit("unfollowUser", this.state.following);
@@ -73,13 +78,13 @@ class Root extends React.Component {
 
   trackUser = id => {
     this.socket.emit("trackUser", id);
-    this.setState({tracking: true})
-  }
+    this.setState({ tracking: true });
+  };
 
   untrackUser = id => {
     this.socket.emit("untrackUser", id);
-    this.setState({tracking: false})
-  }
+    this.setState({ tracking: false });
+  };
 
   selectCountry = c => {
     let countries = c;
@@ -98,30 +103,38 @@ class Root extends React.Component {
     switch (this.state.chartType) {
       case "bars":
         return (
-          <Bars
+          <BarVis
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "lines":
         return (
-          <Lines
+          <LineVis
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
             color={this.state.color}
             tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
       case "scatter":
         return (
-          <Scatter
+          <ScatterVis
             data={this.state.data}
             selected={this.state.selectedCountries}
             socket={this.socket}
+            color={this.state.color}
+            tracking={this.state.tracking}
+            following={this.state.following}
+            unfollowUser={this.followUser}
           />
         );
     }
@@ -134,18 +147,31 @@ class Root extends React.Component {
       case "lines":
         return true;
       case "scatter":
-        return true;
+        return false;
     }
   };
 
   render() {
     if (this.state.data.length > 0) {
       return (
-        <div className="container-fluid">
+        <div className="container-fluid" id="root-container">
+          <div className="row">
+            <TopBar
+              items={this.state.data.map(d => {
+                return { value: d.country, label: d.country };
+              })}
+              cb={this.selectCountry}
+              selected={this.state.selectedCountries}
+              multi={this.isMultiSelect()}
+              slidden={this.state.chartOpen}
+              chartType={this.state.chartType}
+              setChartType={this.setChartType}
+            />
+          </div>
           {this.state.chartOpen ? (
             <div className="row">
-              <div className="col-10">{this.renderChart()}</div>
-              <div className="col-2">
+              <div className="col-11">{this.renderChart()}</div>
+              <div className="col-1">
                 <UserPanel
                   users={this.state.connections}
                   followUser={this.followUser}
@@ -157,17 +183,6 @@ class Root extends React.Component {
               </div>
             </div>
           ) : null}
-          <div className="row">
-            <TopBar
-              items={this.state.data.map(d => {
-                return { value: d.country, label: d.country };
-              })}
-              cb={this.selectCountry}
-              selected={this.state.selectedCountries}
-              multi={this.isMultiSelect()}
-              slidden={this.state.chartOpen}
-            />
-          </div>
         </div>
       );
     } else {
