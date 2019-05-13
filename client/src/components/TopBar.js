@@ -1,5 +1,6 @@
 import React from "react";
 import Select from "react-select";
+import makeAnimated from "react-select/lib/animated";
 
 class TopBar extends React.Component {
   constructor(props) {
@@ -36,8 +37,8 @@ class TopBar extends React.Component {
   render() {
     return (
       <div id="top-bar" className="container-fluid">
-        <div className="row">
-          <div className="col">
+        <div className="row" id="top-row">
+          <div className="center-container col">
             {this.state.slidden ? (
               <div id="instructions">
                 <h6 className="main-title">esc to reset</h6>
@@ -46,7 +47,7 @@ class TopBar extends React.Component {
               </div>
             ) : null}
           </div>
-          <div className="col-8">
+          <div className="center-container col-7">
             <h2 className="main-title">Average Income Over Time in 2011 USD</h2>
             <Select
               onChange={this.callback}
@@ -57,9 +58,10 @@ class TopBar extends React.Component {
               value={this.props.selected.map(c => {
                 return { label: c, value: c };
               })}
+              components={makeAnimated()}
             />
           </div>
-          <div className="col">
+          <div className="center-container col">
             {this.state.slidden ? (
               <div id="controls">
                 <div
