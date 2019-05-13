@@ -189,6 +189,10 @@ class Vis extends React.Component {
     this.socket.off("changeBrush");
     this.socket.off("removeBrush");
     document.removeEventListener("keydown", this.keydownEventHandler);
+    const tt = document.querySelector("[id^='tt-']");
+    if (tt) {
+      tt.remove();
+    }
   }
 
   render() {

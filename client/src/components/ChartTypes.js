@@ -517,19 +517,21 @@ export class Scatter extends ChartType {
       .classed("dot", true)
       .classed("mark", true)
       .attr("r", 5)
+      .attr("fill", this.barColor)
+      .attr("opacity", 0)
       .attr("cx", d => {
         return this.x(d.year);
       })
-      .attr("cy", d => {
-        return this.y(d.income);
-      })
-      .attr("fill", this.barColor)
-      .attr("opacity", 0)
+      .attr("cy", this.h / 2)
       .attr("id", (_, i) => "c-" + i)
       .on("mouseover", this.onMouseOverCircle)
       .on("mouseout", this.onMouseOutCircle)
       .transition()
+      .delay((_, i) => i * 3)
       .duration(this.transitionDuration)
+      .attr("cy", d => {
+        return this.y(d.income);
+      })
       .attr("opacity", 1);
 
     dots
@@ -654,7 +656,7 @@ export class Scatter extends ChartType {
     tt.classList.add("mytooltip");
     tt.id = "tt-" + i;
     tt.style.left = e.clientX + "px";
-    tt.style.top = e.clientY - 20 + "px";
+    tt.style.top = e.clientY - 40 + "px";
     tt.innerText = d.year + ": $" + d.income;
     document.body.append(tt);
 

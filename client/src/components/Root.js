@@ -154,8 +154,8 @@ class Root extends React.Component {
   render() {
     if (this.state.data.length > 0) {
       return (
-        <div className="container-fluid">
-          <div className="row" id="top-container">
+        <div className="container-fluid" id="root-container">
+          <div className="row">
             <TopBar
               items={this.state.data.map(d => {
                 return { value: d.country, label: d.country };
