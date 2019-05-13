@@ -19,7 +19,7 @@ class TopBar extends React.Component {
 
   componentDidMount() {
     if (!this.state.slidden && this.props.slidden) {
-      document.querySelector("#top-bar").style.top = 0;
+      document.querySelector("#top-bar").style["margin-top"] = 0;
       this.setState({ slidden: true });
     }
   }
@@ -27,7 +27,7 @@ class TopBar extends React.Component {
   componentDidUpdate() {
     if (this.props.selected.length > 0) {
       if (!this.state.slidden) {
-        document.querySelector("#top-bar").style.top = 0;
+        document.querySelector("#top-bar").style["margin-top"] = 0;
         this.setState({ slidden: true });
       }
     }
