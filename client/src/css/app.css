@@ -71,6 +71,10 @@ div.center-container {
   color: #c5d2e8;
 }
 
+h2.main-title {
+  font-size: 2vw;
+}
+
 h6.main-title {
   font-size: 2vh;
 }

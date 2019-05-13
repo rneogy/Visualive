@@ -47,7 +47,7 @@ class TopBar extends React.Component {
               </div>
             ) : null}
           </div>
-          <div className="center-container col-7">
+          <div className="center-container col-8">
             <h2 className="main-title">Average Income Over Time in 2011 USD</h2>
             <Select
               onChange={this.callback}
